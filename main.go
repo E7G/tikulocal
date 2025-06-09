@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -33,12 +34,22 @@ var (
 	// 预编译所有正则表达式，避免重复编译
 	cleanTextRegex = regexp.MustCompile(`[\pP\s]`)
 	typeReg        = regexp.MustCompile(`【(.*?)】\s*`)
-	questionReg    = regexp.MustCompile(`【(.*?)】\s*(.*?)\s*正确答案：\s*([A-Z对错]+)`)
+	questionReg    = regexp.MustCompile(`【(.*?)】\s*(.*?)\s*正确答案[：:]\s*([A-Z对错]+)`)
 	// 匹配不包含 abcd 选项的题目文本，直到遇到第一个 A-Z 选项前缀或字符串结束
-	questionTextReg = regexp.MustCompile(`^([^A-Z]*?)(\s*[A-Z]、|$)`)
-	// 修改正则表达式，提取选项内容，忽略 A-Z 及顿号
-	optionReg = regexp.MustCompile(`[A-Z]、([^A-Z]*)`)
-	answerReg = regexp.MustCompile(`正确答案：\s*([A-Z对错]+)`)
+	questionTextReg = regexp.MustCompile(`^([^A-Z]*?)(\s*[A-Z][\s\pP]*|$)`)
+	// 修改正则表达式，提取选项内容，忽略 A-Z 及任意分隔符号
+	optionReg = regexp.MustCompile(`[A-Z][\s\pP]*([^A-Z]*)`)
+	answerReg = regexp.MustCompile(`正确答案[：:]\s*([A-Z对错]+)`)
+
+	// 新增分页相关变量
+	currentPage    = 1
+	itemsPerPage   = 5
+	totalQuestions = 0
+	prevPageBtn    *widget.Button
+	nextPageBtn    *widget.Button
+	// 新增跳转到指定页数的输入框和按钮
+	jumpPageEntry *widget.Entry
+	jumpPageBtn   *widget.Button
 )
 
 // 定义题目结构体
@@ -65,36 +76,166 @@ func initDB() error {
 	return db.AutoMigrate(&Question{})
 }
 
+// 分页查询题目
+func searchQuestionsPaginated(query string, page, limit int) ([]Question, error) {
+	var results []Question
+
+	// 清理并缩短查询文本
+	cleanedQuery := cleanText(query)
+	// 由于直接按字节切片可能会截断中文，使用 rune 来处理字符串，确保中文不会被截断
+	if len([]rune(cleanedQuery)) > 100 {
+		cleanedQuery = string([]rune(cleanedQuery)[:100])
+	}
+
+	var queryDB *gorm.DB
+	if query == "" {
+		queryDB = db
+	} else {
+		queryDB = db.Where("text LIKE ?", "%"+cleanedQuery+"%")
+	}
+
+	offset := (page - 1) * limit
+	if err := queryDB.Offset(offset).Limit(limit).Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// 获取每个题型的题目数量
+func getQuestionCountByType() map[string]int {
+	var questions []Question
+	if err := db.Find(&questions).Error; err != nil {
+		return nil
+	}
+	countMap := make(map[string]int)
+	for _, q := range questions {
+		countMap[q.Type]++
+	}
+	return countMap
+}
+
+// 自动换行函数，将长文本按指定长度换行
+func autoWrapText(text string, maxLen int) string {
+	words := strings.Fields(text)
+	var result strings.Builder
+	currentLen := 0
+	for i, word := range words {
+		if i > 0 {
+			if currentLen+len(word)+1 > maxLen {
+				result.WriteString("\n")
+				currentLen = 0
+			} else {
+				result.WriteString(" ")
+				currentLen++
+			}
+		}
+		result.WriteString(word)
+		currentLen += len(word)
+	}
+	return result.String()
+}
+
 // 显示所有题目
 func showAllQuestions() {
-	results, err := searchQuestions("")
+	results, err := searchQuestionsPaginated("", currentPage, itemsPerPage)
 	if err != nil {
 		statusLabel.SetText(fmt.Sprintf("查询所有题目失败: %v", err))
 		dialog.ShowError(err, guiWindow)
 		return
 	}
 
-	// 使用更规范的Markdown格式
+	// 获取总题目数
+	var count int64
+	if err := db.Model(&Question{}).Count(&count).Error; err != nil {
+		statusLabel.SetText(fmt.Sprintf("获取题目总数失败: %v", err))
+		dialog.ShowError(err, guiWindow)
+		return
+	}
+	totalQuestions = int(count)
+
+	// 计算总页数
+	totalPages := (totalQuestions + itemsPerPage - 1) / itemsPerPage
+
+	// 确保当前页在有效范围内
+	if currentPage < 1 {
+		currentPage = 1
+	} else if currentPage > totalPages {
+		currentPage = totalPages
+	}
+
+	// 获取每个题型的题目数量
+	// typeCount := getQuestionCountByType()
+
+	// 使用更规范的Markdown格式，加入总页数和每个题型的题目数量
 	var result strings.Builder
-	result.WriteString(fmt.Sprintf("### 共找到 %d 道题目\n\n", len(results)))
+	// result.WriteString(fmt.Sprintf("### 共找到 %d 道题目，当前第 %d 页，总页数 %d\n\n", totalQuestions, currentPage, totalPages))
+	// result.WriteString("### 各题型题目数量统计\n")
+	// for t, c := range typeCount {
+	// 	result.WriteString(fmt.Sprintf("- **%s**: %d 道题\n"aa, t, c))
+	// }
+	// result.WriteString("\n---\n\n")
 
 	for i, q := range results {
-		if i >= 5 { // 只显示前5题
-			break
-		}
-		result.WriteString(fmt.Sprintf("#### 题目 %d\n", i+1))
-		result.WriteString(fmt.Sprintf("**题型**: %s\n\n", q.Type))
-		result.WriteString(fmt.Sprintf("**题目内容**: %s\n\n", q.Text))
-		result.WriteString("**选项**:\n")
+		result.WriteString(fmt.Sprintf("#### 题目 %d\n", (currentPage-1)*itemsPerPage+i+1))
+		result.WriteString(fmt.Sprintf("题型: %s\n\n", q.Type))
+		result.WriteString(fmt.Sprintf("题目内容: %s\n\n", q.Text))
+		result.WriteString("选项:\n")
 		for _, opt := range q.Options {
 			result.WriteString(fmt.Sprintf("- %s\n", opt))
 		}
-		result.WriteString(fmt.Sprintf("\n**答案**: %s\n\n", strings.Join(q.Answer, ", ")))
+		result.WriteString(fmt.Sprintf("\n答案: %s\n\n", strings.Join(q.Answer, ", ")))
+		result.WriteString("---\n\n")
 	}
 
 	// 更新 widget.RichText 的内容
 	resultRichText.ParseMarkdown(result.String())
-	statusLabel.SetText(fmt.Sprintf("查询完成! 共找到 %d 道题目", len(results)))
+	statusLabel.SetText(fmt.Sprintf("查询完成! 共找到 %d 道题目，当前第 %d 页，总页数 %d", totalQuestions, currentPage, totalPages))
+
+	// 更新分页按钮状态
+	prevPageBtn.Disable()
+	nextPageBtn.Disable()
+	if currentPage > 1 {
+		prevPageBtn.Enable()
+	}
+	if currentPage*itemsPerPage < totalQuestions {
+		nextPageBtn.Enable()
+	}
+}
+
+// 上一页
+func prevPage() {
+	if currentPage > 1 {
+		currentPage--
+		showAllQuestions()
+	}
+}
+
+// 下一页
+func nextPage() {
+	if currentPage*itemsPerPage < totalQuestions {
+		currentPage++
+		showAllQuestions()
+	}
+}
+
+// 跳转到指定页数
+func jumpToPage() {
+	pageStr := jumpPageEntry.Text
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("请输入有效的页码"), guiWindow)
+		return
+	}
+
+	totalPages := (totalQuestions + itemsPerPage - 1) / itemsPerPage
+	if page < 1 || page > totalPages {
+		dialog.ShowError(fmt.Errorf("页码超出范围，总页数为 %d", totalPages), guiWindow)
+		return
+	}
+
+	currentPage = page
+	showAllQuestions()
 }
 
 func setupGUI() {
@@ -108,8 +249,11 @@ func setupGUI() {
 	progressBar = widget.NewProgressBar()
 	progressBar.Hide()
 
-	// 创建 widget.RichText 替代 canvas.Text
+	// 创建 widget.RichText 替代 canvas.Text，并设置新字体
 	resultRichText = widget.NewRichTextWithText("")
+	// 这里以使用主题的 monospace 字体为例，你可以根据需要修改
+	// resultRichText.Segments[0].(*widget.TextSegment).Style.Font = theme.MonospaceFont()
+
 	resultScroll := container.NewScroll(resultRichText)
 	resultScroll.SetMinSize(fyne.NewSize(400, 300))
 
@@ -145,22 +289,31 @@ func setupGUI() {
 				questions[i].Text = cleanText(questions[i].Text)
 			}
 
-			// 更新结果，使用更规范的Markdown格式
+			// 获取每个题型的题目数量
+			// typeCount := getQuestionCountByType()
+
+			// 更新结果，使用更规范的Markdown格式，加入每个题型的题目数量
 			var result strings.Builder
-			result.WriteString(fmt.Sprintf("### 成功解析 %d 道题目\n\n", len(questions)))
+			// result.WriteString(fmt.Sprintf("### 成功解析 %d 道题目\n\n", len(questions)))
+			// result.WriteString("### 各题型题目数量统计\n")
+			// for t, c := range typeCount {
+			// 	result.WriteString(fmt.Sprintf("- **%s**: %d 道题\n", t, c))
+			// }
+			// result.WriteString("\n---\n\n")
 
 			for i, q := range questions {
 				if i >= 5 { // 只显示前5题
 					break
 				}
 				result.WriteString(fmt.Sprintf("#### 题目 %d\n", i+1))
-				result.WriteString(fmt.Sprintf("**题型**: %s\n\n", q.Type))
-				result.WriteString(fmt.Sprintf("**题目内容**: %s\n\n", q.Text))
+				result.WriteString(fmt.Sprintf("题型: %s\n\n", q.Type))
+				result.WriteString(fmt.Sprintf("题目内容: %s\n\n", q.Text))
 				result.WriteString("**选项**:\n")
 				for _, opt := range q.Options {
 					result.WriteString(fmt.Sprintf("- %s\n", opt))
 				}
-				result.WriteString(fmt.Sprintf("\n**答案**: %s\n\n", strings.Join(q.Answer, ", ")))
+				result.WriteString(fmt.Sprintf("\n答案: %s\n\n", strings.Join(q.Answer, ", ")))
+				result.WriteString("---\n\n")
 			}
 
 			// 更新 widget.RichText 的内容
@@ -174,6 +327,7 @@ func setupGUI() {
 			}
 
 			// 解析完成后显示所有题目
+			currentPage = 1
 			showAllQuestions()
 		})
 	})
@@ -185,14 +339,40 @@ func setupGUI() {
 
 		// 清洗搜索查询，去除标点和空格
 		cleanedQuery := cleanText(query)
+		currentPage = 1
 
 		fyne.Do(func() {
-			results, err := searchQuestions(cleanedQuery)
+			results, err := searchQuestionsPaginated(cleanedQuery, currentPage, itemsPerPage)
 			if err != nil {
 				statusLabel.SetText(fmt.Sprintf("搜索失败: %v", err))
 				dialog.ShowError(err, guiWindow)
 				return
 			}
+
+			// 获取总题目数
+			var count int64
+			cleanedQuery = cleanText(query)
+			if len([]rune(cleanedQuery)) > 100 {
+				cleanedQuery = string([]rune(cleanedQuery)[:100])
+			}
+			var queryDB *gorm.DB
+			if query == "" {
+				queryDB = db
+			} else {
+				queryDB = db.Where("text LIKE ?", "%"+cleanedQuery+"%")
+			}
+			if err := queryDB.Model(&Question{}).Count(&count).Error; err != nil {
+				statusLabel.SetText(fmt.Sprintf("获取搜索结果总数失败: %v", err))
+				dialog.ShowError(err, guiWindow)
+				return
+			}
+			totalQuestions = int(count)
+
+			// 计算总页数
+			totalPages := (totalQuestions + itemsPerPage - 1) / itemsPerPage
+
+			// 获取每个题型的题目数量
+			// typeCount := getQuestionCountByType()
 
 			if len(results) == 0 {
 				resultRichText.ParseMarkdown("### 未找到相关题目")
@@ -200,27 +380,40 @@ func setupGUI() {
 				return
 			}
 
-			// 使用更规范的Markdown格式
+			// 使用更规范的Markdown格式，加入总页数和每个题型的题目数量
 			var result strings.Builder
-			result.WriteString(fmt.Sprintf("### 找到 %d 条匹配结果\n\n", len(results)))
+			// result.WriteString(fmt.Sprintf("### 找到 %d 条匹配结果，当前第 %d 页，总页数 %d\n\n", totalQuestions, currentPage, totalPages))
+			// result.WriteString("### 各题型题目数量统计\n")
+			// for t, c := range typeCount {
+			// 	result.WriteString(fmt.Sprintf("- **%s**: %d 道题\n", t, c))
+			// }
+			// result.WriteString("\n---\n\n")
 
 			for i, q := range results {
-				if i >= 5 { // 只显示前5题
-					break
-				}
-				result.WriteString(fmt.Sprintf("#### 题目 %d\n", i+1))
-				result.WriteString(fmt.Sprintf("**题型**: %s\n\n", q.Type))
-				result.WriteString(fmt.Sprintf("**题目内容**: %s\n\n", q.Text))
+				result.WriteString(fmt.Sprintf("#### 题目 %d\n", (currentPage-1)*itemsPerPage+i+1))
+				result.WriteString(fmt.Sprintf("题型: %s\n\n", q.Type))
+				result.WriteString(fmt.Sprintf("题目内容: %s\n\n", q.Text))
 				result.WriteString("**选项**:\n")
 				for _, opt := range q.Options {
 					result.WriteString(fmt.Sprintf("- %s\n", opt))
 				}
-				result.WriteString(fmt.Sprintf("\n**答案**: %s\n\n", strings.Join(q.Answer, ", ")))
+				result.WriteString(fmt.Sprintf("\n答案: %s\n\n", strings.Join(q.Answer, ", ")))
+				result.WriteString("---\n\n")
 			}
 
 			// 更新 widget.RichText 的内容
 			resultRichText.ParseMarkdown(result.String())
-			statusLabel.SetText(fmt.Sprintf("搜索完成! 共找到 %d 条结果", len(results)))
+			statusLabel.SetText(fmt.Sprintf("搜索完成! 共找到 %d 条结果，当前第 %d 页，总页数 %d", totalQuestions, currentPage, totalPages))
+
+			// 更新分页按钮状态
+			prevPageBtn.Disable()
+			nextPageBtn.Disable()
+			if currentPage > 1 {
+				prevPageBtn.Enable()
+			}
+			if currentPage*itemsPerPage < totalQuestions {
+				nextPageBtn.Enable()
+			}
 		})
 	})
 
@@ -238,24 +431,40 @@ func setupGUI() {
 		parseBtn.OnTapped()
 	}
 
+	// 分页按钮
+	prevPageBtn = widget.NewButton("上一页", prevPage)
+	prevPageBtn.Disable()
+	nextPageBtn = widget.NewButton("下一页", nextPage)
+	nextPageBtn.Disable()
+
+	// 新增跳转到指定页数的输入框和按钮
+	jumpPageEntry = widget.NewEntry()
+	jumpPageEntry.SetPlaceHolder("输入页码")
+	jumpPageBtn = widget.NewButton("跳转", jumpToPage)
+
+	pagination := container.NewHBox(prevPageBtn, nextPageBtn, widget.NewLabel("跳转到:"), jumpPageEntry, jumpPageBtn)
+
 	// 布局
 	fileRow := container.NewBorder(nil, nil, fileBtn, parseBtn, filePathEntry)
 	searchRow := container.NewBorder(nil, nil, nil, searchBtn, searchEntry)
 	topSection := container.NewVBox(title, fileRow, searchRow, widget.NewSeparator())
 
 	resultScroll = container.NewScroll(resultRichText)
-	resultScroll.SetMinSize(fyne.NewSize(780, 400))
+	// 调整滚动区域的最小尺寸，可能有助于布局稳定
+	resultScroll.SetMinSize(fyne.NewSize(700, 350))
 
 	// 在布局中替换原有组件
 	content := container.NewBorder(
 		topSection,
-		container.NewVBox(progressBar, statusLabel),
+		container.NewVBox(progressBar, pagination, statusLabel),
 		nil,
 		nil,
 		resultScroll,
 	)
 
+	// 重新布局时调用 Refresh 方法
 	guiWindow.SetContent(content)
+	content.Refresh()
 
 	// 启动时显示所有题目
 	showAllQuestions()
@@ -500,9 +709,9 @@ func parseQuestions(text string) ([]Question, error) {
 		// 查找题目文本
 		if questionTextMatches := questionTextReg.FindStringSubmatch(match[2]); len(questionTextMatches) > 2 {
 			// 清晰输出questionTextMatches所有内容
-			// for i, item := range questionTextMatches {
-			// 	fmt.Printf("questionTextMatches 索引 %d: %s\n", i, item)
-			// }
+			for i, item := range questionTextMatches {
+				fmt.Printf("questionTextMatches 索引 %d: %s\n", i, item)
+			}
 			// 若匹配成功，获取题目文本并去除首尾空格
 			questionText := strings.TrimSpace(questionTextMatches[1])
 			// 清洗题目文本，去除标点和空格
