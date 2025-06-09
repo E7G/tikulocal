@@ -584,10 +584,15 @@ func extractTextFromXML(xmlContent string) string {
 
 // 处理搜索请求 - 兼容新API格式
 // 生成带选项前缀的格式化答案
-func generateFormattedAnswers(answers []string) []string {
+func generateFormattedAnswers(answers []string, options []string) []string {
 	var formatted []string
-	for i, ans := range answers {
-		formatted = append(formatted, fmt.Sprintf("%c、%s", 'A'+i, ans))
+	for _, ans := range answers {
+		for i, opt := range options {
+			if strings.Contains(opt, ans) || strings.Contains(ans, opt) {
+				formatted = append(formatted, fmt.Sprintf("%c、%s", 'A'+i, ans))
+				break
+			}
+		}
 	}
 	return formatted
 }
@@ -680,7 +685,7 @@ func handleSearch(c *gin.Context) {
 			"bestAnswer":    bestMatch.Answer,
 			"allAnswer": [][]string{
 				bestMatch.Answer,
-				generateFormattedAnswers(bestMatch.Answer), // 生成带选项前缀的格式
+				generateFormattedAnswers(bestMatch.Answer, request.Options), // 根据请求选项生成前缀
 			},
 		},
 	}
