@@ -33,12 +33,12 @@ var (
 	// 预编译所有正则表达式，避免重复编译
 	cleanTextRegex = regexp.MustCompile(`[\pP\s]`)
 	typeReg        = regexp.MustCompile(`【(.*?)】\s*`)
-	questionReg    = regexp.MustCompile(`【(.*?)】\s*(.*?)\s*正确答案：\s*([A-D对错]+)`)
-	// 匹配不包含 abcd 选项的题目文本，直到遇到第一个 A-D 选项前缀或字符串结束
-	questionTextReg = regexp.MustCompile(`^([^A-D]*?)(\s*[A-D]、|$)`)
-	// 修改正则表达式，提取选项内容，忽略 A-D 及顿号
-	optionReg = regexp.MustCompile(`[A-D]、([^A-D]*)`)
-	answerReg = regexp.MustCompile(`正确答案：\s*([A-D对错]+)`)
+	questionReg    = regexp.MustCompile(`【(.*?)】\s*(.*?)\s*正确答案：\s*([A-Z对错]+)`)
+	// 匹配不包含 abcd 选项的题目文本，直到遇到第一个 A-Z 选项前缀或字符串结束
+	questionTextReg = regexp.MustCompile(`^([^A-Z]*?)(\s*[A-Z]、|$)`)
+	// 修改正则表达式，提取选项内容，忽略 A-Z 及顿号
+	optionReg = regexp.MustCompile(`[A-Z]、([^A-Z]*)`)
+	answerReg = regexp.MustCompile(`正确答案：\s*([A-Z对错]+)`)
 )
 
 // 定义题目结构体
@@ -585,6 +585,9 @@ func extractTextFromXML(xmlContent string) string {
 // 处理搜索请求 - 兼容新API格式
 // 生成带选项前缀的格式化答案
 func generateFormattedAnswers(answers []string, options []string) []string {
+	if len(options) == 0 {
+		return answers
+	}
 	var formatted []string
 	for _, ans := range answers {
 		for i, opt := range options {
