@@ -585,9 +585,6 @@ func extractTextFromXML(xmlContent string) string {
 // 处理搜索请求 - 兼容新API格式
 // 生成带选项前缀的格式化答案
 func generateFormattedAnswers(answers []string, options []string) []string {
-	if len(options) == 0 {
-		return answers
-	}
 	var formatted []string
 	for _, ans := range answers {
 		for i, opt := range options {
@@ -623,7 +620,6 @@ func handleSearch(c *gin.Context) {
 
 	// 清理并缩短查询文本
 	cleanedQuery := cleanText(request.Question)
-	// log.Printf("原始查询: %s", cleanedQuery)
 	// 由于直接按字节切片可能会截断中文，使用 rune 来处理字符串，确保中文不会被截断
 	if len([]rune(cleanedQuery)) > 100 {
 		cleanedQuery = string([]rune(cleanedQuery)[:100])
@@ -668,10 +664,20 @@ func handleSearch(c *gin.Context) {
 	// 如果没匹配到选项，使用原始答案
 	if len(answerKey) == 0 {
 		answerKey = bestMatch.Answer
-		answerIndex = []int{0} // 简化处理
+		// 修正：根据答案数量设置正确的索引
+		answerIndex = make([]int, len(bestMatch.Answer))
+		for i := range answerIndex {
+			answerIndex[i] = 0 // 简化处理，实际情况可能需要调整
+		}
 		for _, ans := range bestMatch.Answer {
 			answerText = append(answerText, ans)
 		}
+	}
+
+	// 修复语法错误：Go语言中没有 ?? 运算符，手动处理
+	formattedAnswers := generateFormattedAnswers(bestMatch.Answer, request.Options)
+	if len(formattedAnswers) == 0 {
+		formattedAnswers = bestMatch.Answer
 	}
 
 	// 构建标准API响应
@@ -688,7 +694,7 @@ func handleSearch(c *gin.Context) {
 			"bestAnswer":    bestMatch.Answer,
 			"allAnswer": [][]string{
 				bestMatch.Answer,
-				generateFormattedAnswers(bestMatch.Answer, request.Options), // 根据请求选项生成前缀
+				formattedAnswers,
 			},
 		},
 	}
