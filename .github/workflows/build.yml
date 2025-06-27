@@ -62,6 +62,7 @@ jobs:
       run: go test -v main_test.go main.go
       
     - name: 构建应用
+      shell: bash
       run: |
         # 设置交叉编译环境变量
         export GOOS=${{ matrix.goos }}
@@ -75,6 +76,7 @@ jobs:
         fi
         
     - name: 使用fyne打包
+      shell: bash
       run: |
         # 设置交叉编译环境变量
         export GOOS=${{ matrix.goos }}
@@ -90,6 +92,7 @@ jobs:
         fi
         
     - name: 重命名构建产物
+      shell: bash
       run: |
         # 重命名文件以便识别
         if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -115,6 +118,7 @@ jobs:
         retention-days: 30
         
     - name: 显示构建信息
+      shell: bash
       run: |
         echo "构建完成!"
         echo "版本: ${{ github.event.inputs.version }}"

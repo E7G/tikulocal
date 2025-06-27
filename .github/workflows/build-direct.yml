@@ -44,6 +44,7 @@ jobs:
     #   run: go test -v main_test.go main.go
       
     - name: 构建应用
+      shell: bash
       run: |
         # 设置目标平台
         export GOOS=${{ github.event.inputs.platform }}
@@ -64,6 +65,7 @@ jobs:
         fi
         
     - name: 重命名构建产物
+      shell: bash
       run: |
         # 重命名文件以便识别
         if [ "${{ github.event.inputs.platform }}" = "windows" ]; then
@@ -121,6 +123,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: 显示构建信息
+      shell: bash
       run: |
         echo "✅ 构建和发布完成!"
         echo "📦 版本: ${{ github.event.inputs.version }}"

@@ -37,6 +37,7 @@ jobs:
       run: go mod download
       
     - name: 构建应用
+      shell: bash
       run: |
         # 设置目标平台
         export GOOS=${{ github.event.inputs.platform }}
