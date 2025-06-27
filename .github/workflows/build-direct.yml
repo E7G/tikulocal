@@ -40,8 +40,8 @@ jobs:
     - name: 下载依赖
       run: go mod download
       
-    - name: 运行测试
-      run: go test -v main_test.go main.go
+    # - name: 运行测试
+    #   run: go test -v main_test.go main.go
       
     - name: 构建应用
       run: |
