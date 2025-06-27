@@ -68,6 +68,9 @@ jobs:
         export GOOS=${{ matrix.goos }}
         export GOARCH=${{ matrix.goarch }}
         
+        echo "🔨 开始构建应用..."
+        echo "📋 构建参数: GOOS=$GOOS, GOARCH=$GOARCH"
+        
         # 构建可执行文件
         if [ "${{ matrix.goos }}" = "windows" ]; then
           go build -ldflags="-s -w" -o tikulocal.exe .
@@ -75,12 +78,18 @@ jobs:
           go build -ldflags="-s -w" -o tikulocal .
         fi
         
+        echo "📁 构建后的文件列表:"
+        ls -la
+        
     - name: 使用fyne打包
       shell: bash
       run: |
         # 设置交叉编译环境变量
         export GOOS=${{ matrix.goos }}
         export GOARCH=${{ matrix.goarch }}
+        
+        echo "📦 开始使用fyne打包..."
+        echo "📋 打包参数: GOOS=$GOOS, GOARCH=$GOARCH"
         
         # 使用fyne打包
         if [ "${{ matrix.goos }}" = "windows" ]; then
@@ -91,20 +100,72 @@ jobs:
           fyne package -os darwin -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
         fi
         
+        echo "📁 fyne打包后的文件列表:"
+        ls -la
+        
     - name: 重命名构建产物
       shell: bash
       run: |
+        echo "📁 当前目录文件列表:"
+        ls -la
+        
+        echo "🔄 开始重命名构建产物..."
+        
         # 重命名文件以便识别
         if [ "${{ matrix.goos }}" = "windows" ]; then
-          mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
-          mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.exe" ]; then
+            mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
+            echo "✅ 重命名题库管理系统.exe成功"
+          else
+            echo "⚠️ 未找到题库管理系统.exe"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal.exe" ]; then
+            mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
+            echo "✅ 重命名tikulocal.exe成功"
+          else
+            echo "⚠️ 未找到tikulocal.exe"
+          fi
+          
         elif [ "${{ matrix.goos }}" = "linux" ]; then
-          mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.tar.gz"
-          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.tar.gz" ]; then
+            mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.tar.gz"
+            echo "✅ 重命名题库管理系统.tar.gz成功"
+          else
+            echo "⚠️ 未找到题库管理系统.tar.gz"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal" ]; then
+            mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+            echo "✅ 重命名tikulocal成功"
+          else
+            echo "⚠️ 未找到tikulocal"
+          fi
+          
         elif [ "${{ matrix.goos }}" = "darwin" ]; then
-          mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.app"
-          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.app" ]; then
+            mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.app"
+            echo "✅ 重命名题库管理系统.app成功"
+          else
+            echo "⚠️ 未找到题库管理系统.app"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal" ]; then
+            mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+            echo "✅ 重命名tikulocal成功"
+          else
+            echo "⚠️ 未找到tikulocal"
+          fi
         fi
+        
+        echo "📁 重命名后的文件列表:"
+        ls -la
         
     - name: 上传构建产物
       uses: actions/upload-artifact@v4

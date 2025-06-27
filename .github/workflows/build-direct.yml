@@ -50,10 +50,15 @@ jobs:
         export GOOS=${{ github.event.inputs.platform }}
         export GOARCH=amd64
         
+        echo "🔨 开始构建应用..."
+        echo "📋 构建参数: GOOS=$GOOS, GOARCH=$GOARCH"
         echo "构建平台: $GOOS-$GOARCH"
         
         # 构建可执行文件
         go build -ldflags="-s -w" -o tikulocal .
+        
+        echo "📁 构建后的文件列表:"
+        ls -la
         
         # 使用fyne打包
         if [ "$GOOS" = "windows" ]; then
@@ -64,20 +69,72 @@ jobs:
           fyne package -os darwin -icon icon.png -name "题库管理系统"
         fi
         
+        echo "📁 fyne打包后的文件列表:"
+        ls -la
+        
     - name: 重命名构建产物
       shell: bash
       run: |
+        echo "📁 当前目录文件列表:"
+        ls -la
+        
+        echo "🔄 开始重命名构建产物..."
+        
         # 重命名文件以便识别
         if [ "${{ github.event.inputs.platform }}" = "windows" ]; then
-          mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
-          mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.exe" ]; then
+            mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
+            echo "✅ 重命名题库管理系统.exe成功"
+          else
+            echo "⚠️ 未找到题库管理系统.exe"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal.exe" ]; then
+            mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
+            echo "✅ 重命名tikulocal.exe成功"
+          else
+            echo "⚠️ 未找到tikulocal.exe"
+          fi
+          
         elif [ "${{ github.event.inputs.platform }}" = "linux" ]; then
-          mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.tar.gz"
-          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.tar.gz" ]; then
+            mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.tar.gz"
+            echo "✅ 重命名题库管理系统.tar.gz成功"
+          else
+            echo "⚠️ 未找到题库管理系统.tar.gz"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal" ]; then
+            mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+            echo "✅ 重命名tikulocal成功"
+          else
+            echo "⚠️ 未找到tikulocal"
+          fi
+          
         elif [ "${{ github.event.inputs.platform }}" = "macos" ]; then
-          mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.app"
-          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+          # 检查并重命名fyne打包的文件
+          if [ -f "题库管理系统.app" ]; then
+            mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.app"
+            echo "✅ 重命名题库管理系统.app成功"
+          else
+            echo "⚠️ 未找到题库管理系统.app"
+          fi
+          
+          # 检查并重命名原始构建文件
+          if [ -f "tikulocal" ]; then
+            mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+            echo "✅ 重命名tikulocal成功"
+          else
+            echo "⚠️ 未找到tikulocal"
+          fi
         fi
+        
+        echo "📁 重命名后的文件列表:"
+        ls -la
         
     - name: 创建Release
       uses: softprops/action-gh-release@v1

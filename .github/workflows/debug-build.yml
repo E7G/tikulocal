@@ -1,0 +1,150 @@
+name: 调试构建
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: '目标平台'
+        required: true
+        default: 'windows'
+        type: choice
+        options:
+        - windows
+        - linux
+        - macos
+
+jobs:
+  debug-build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Go环境
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: 显示环境信息
+      shell: bash
+      run: |
+        echo "🔍 环境信息:"
+        echo "GOOS: $GOOS"
+        echo "GOARCH: $GOARCH"
+        echo "GOROOT: $GOROOT"
+        echo "GOPATH: $GOPATH"
+        echo "当前目录: $(pwd)"
+        echo "目录内容:"
+        ls -la
+        
+    - name: 下载依赖
+      run: go mod download
+      
+    - name: 验证依赖
+      run: go mod verify
+      
+    - name: 测试构建
+      shell: bash
+      run: |
+        # 设置目标平台
+        export GOOS=${{ github.event.inputs.platform }}
+        export GOARCH=amd64
+        
+        echo "🔨 开始测试构建..."
+        echo "📋 构建参数: GOOS=$GOOS, GOARCH=$GOARCH"
+        
+        # 尝试构建
+        echo "📝 执行: go build -ldflags='-s -w' -o tikulocal ."
+        go build -ldflags="-s -w" -o tikulocal .
+        
+        echo "📁 构建后的文件列表:"
+        ls -la
+        
+        # 检查文件是否存在
+        if [ "$GOOS" = "windows" ]; then
+          if [ -f "tikulocal.exe" ]; then
+            echo "✅ tikulocal.exe 存在"
+            file tikulocal.exe
+          else
+            echo "❌ tikulocal.exe 不存在"
+          fi
+        else
+          if [ -f "tikulocal" ]; then
+            echo "✅ tikulocal 存在"
+            file tikulocal
+          else
+            echo "❌ tikulocal 不存在"
+          fi
+        fi
+        
+    - name: 测试fyne工具
+      shell: bash
+      run: |
+        echo "🔧 检查fyne工具..."
+        which fyne || echo "fyne工具未安装"
+        
+        # 安装fyne工具
+        echo "📦 安装fyne工具..."
+        go install fyne.io/tools/cmd/fyne@latest
+        
+        echo "🔧 检查fyne工具安装..."
+        which fyne || echo "fyne工具安装失败"
+        fyne version || echo "无法获取fyne版本"
+        
+    - name: 测试fyne打包
+      shell: bash
+      run: |
+        # 设置目标平台
+        export GOOS=${{ github.event.inputs.platform }}
+        export GOARCH=amd64
+        
+        echo "📦 开始测试fyne打包..."
+        echo "📋 打包参数: GOOS=$GOOS, GOARCH=$GOARCH"
+        
+        # 检查图标文件
+        if [ -f "icon.png" ]; then
+          echo "✅ icon.png 存在"
+        else
+          echo "❌ icon.png 不存在"
+        fi
+        
+        # 尝试fyne打包
+        if [ "$GOOS" = "windows" ]; then
+          echo "📝 执行: fyne package -os windows -icon icon.png -name '题库管理系统'"
+          fyne package -os windows -icon icon.png -name "题库管理系统"
+        elif [ "$GOOS" = "linux" ]; then
+          echo "📝 执行: fyne package -os linux -icon icon.png -name '题库管理系统'"
+          fyne package -os linux -icon icon.png -name "题库管理系统"
+        elif [ "$GOOS" = "macos" ]; then
+          echo "📝 执行: fyne package -os darwin -icon icon.png -name '题库管理系统'"
+          fyne package -os darwin -icon icon.png -name "题库管理系统"
+        fi
+        
+        echo "📁 fyne打包后的文件列表:"
+        ls -la
+        
+    - name: 显示最终结果
+      shell: bash
+      run: |
+        echo "🎯 最终构建结果:"
+        echo "📁 当前目录所有文件:"
+        ls -la
+        
+        echo "📊 文件统计:"
+        echo "可执行文件:"
+        find . -name "*.exe" -o -name "tikulocal" -o -name "*.app" -o -name "*.tar.gz" 2>/dev/null || echo "未找到可执行文件"
+        
+        echo "📋 构建总结:"
+        if [ "${{ github.event.inputs.platform }}" = "windows" ]; then
+          if [ -f "tikulocal.exe" ]; then
+            echo "✅ 原始构建文件存在"
+          else
+            echo "❌ 原始构建文件不存在"
+          fi
+          if [ -f "题库管理系统.exe" ]; then
+            echo "✅ fyne打包文件存在"
+          else
+            echo "❌ fyne打包文件不存在"
+          fi
+        fi 
