@@ -24,7 +24,9 @@ env:
 jobs:
   build-and-release:
     runs-on: windows-latest
-    
+    permissions:
+      contents: write
+
     steps:
     - name: 检出代码
       uses: actions/checkout@v4
@@ -136,6 +138,11 @@ jobs:
         echo "📁 重命名后的文件列表:"
         ls -la
         
+    - name: Create tag
+      uses: rickstaa/action-create-tag@v1
+      with:
+      tag: ${{ github.event.inputs.version }}
+
     - name: 创建Release
       uses: softprops/action-gh-release@v1
       with:
