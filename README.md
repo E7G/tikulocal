@@ -66,6 +66,12 @@ go run main.go
 go build -o tikulocal.exe .
 ```
 
+### 生成可执行文件
+```bash
+go install fyne.io/tools/cmd/fyne@latest
+fyne package -os windows -icon icon.png
+```
+
 ## 📖 使用指南
 
 ### 1. 解析DOCX文档
