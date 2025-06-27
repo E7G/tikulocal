@@ -57,11 +57,11 @@ jobs:
         
         # 使用fyne打包
         if [ "$GOOS" = "windows" ]; then
-          fyne package -os windows -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+          fyne package -os windows -icon icon.png -name "题库管理系统"
         elif [ "$GOOS" = "linux" ]; then
-          fyne package -os linux -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+          fyne package -os linux -icon icon.png -name "题库管理系统"
         elif [ "$GOOS" = "macos" ]; then
-          fyne package -os darwin -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+          fyne package -os darwin -icon icon.png -name "题库管理系统"
         fi
         
     - name: 重命名构建产物
