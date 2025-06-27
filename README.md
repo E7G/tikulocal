@@ -72,6 +72,16 @@ go install fyne.io/tools/cmd/fyne@latest
 fyne package -os windows -icon icon.png
 ```
 
+### 使用GitHub Actions构建
+项目提供了GitHub Actions工作流来自动构建和发布：
+
+1. **访问Actions页面**: 在GitHub仓库页面点击 "Actions" 标签
+2. **选择工作流**: 选择 "构建题库管理系统" 或 "构建题库管理系统 (简化版)"
+3. **配置参数**: 输入版本号和选择目标平台
+4. **启动构建**: 点击 "Run workflow" 按钮
+
+详细说明请查看 [GitHub Actions使用指南](docs/GITHUB_ACTIONS.md)
+
 ## 📖 使用指南
 
 ### 1. 解析DOCX文档
@@ -132,6 +142,7 @@ HEAD /
 - [拖放功能说明](docs/DRAG_DROP_FIX.md) - 文件拖放功能
 - [代码优化总结](docs/OPTIMIZATION.md) - 性能优化和代码改进
 - [API接口文档](docs/API.md) - RESTful API接口详细说明
+- [GitHub Actions使用指南](docs/GITHUB_ACTIONS.md) - 自动构建和发布说明
 
 ### 测试文档
 - [卡片显示测试](docs/test_cards.md) - 卡片式显示功能测试

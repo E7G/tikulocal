@@ -1,0 +1,174 @@
+name: 构建题库管理系统
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: v1.2.6)'
+        required: true
+        default: 'v1.2.6'
+      build_type:
+        description: '构建类型'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - debug
+      platforms:
+        description: '目标平台'
+        required: true
+        default: 'windows'
+        type: choice
+        options:
+        - windows
+        - all
+        - windows,linux,macos
+
+env:
+  GO_VERSION: '1.21'
+  FYNE_VERSION: 'latest'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: ${{ fromJSON(format('[{0}]', github.event.inputs.platforms == 'all' && '["windows-latest", "ubuntu-latest", "macos-latest"]' || github.event.inputs.platforms == 'windows' && '["windows-latest"]' || format('["{0}"]', github.event.inputs.platforms))) }}
+        goos: ${{ fromJSON(format('[{0}]', github.event.inputs.platforms == 'all' && '["windows", "linux", "darwin"]' || github.event.inputs.platforms == 'windows' && '["windows"]' || format('["{0}"]', github.event.inputs.platforms))) }}
+        goarch: [amd64]
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Go环境
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: 安装fyne工具
+      run: |
+        go install fyne.io/tools/cmd/fyne@${{ env.FYNE_VERSION }}
+        
+    - name: 下载依赖
+      run: go mod download
+      
+    - name: 验证依赖
+      run: go mod verify
+      
+    - name: 运行测试
+      run: go test -v ./...
+      
+    - name: 构建应用
+      run: |
+        # 设置交叉编译环境变量
+        export GOOS=${{ matrix.goos }}
+        export GOARCH=${{ matrix.goarch }}
+        
+        # 构建可执行文件
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          go build -ldflags="-s -w" -o tikulocal.exe .
+        else
+          go build -ldflags="-s -w" -o tikulocal .
+        fi
+        
+    - name: 使用fyne打包
+      run: |
+        # 设置交叉编译环境变量
+        export GOOS=${{ matrix.goos }}
+        export GOARCH=${{ matrix.goarch }}
+        
+        # 使用fyne打包
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          fyne package -os windows -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        elif [ "${{ matrix.goos }}" = "linux" ]; then
+          fyne package -os linux -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        elif [ "${{ matrix.goos }}" = "darwin" ]; then
+          fyne package -os darwin -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        fi
+        
+    - name: 重命名构建产物
+      run: |
+        # 重命名文件以便识别
+        if [ "${{ matrix.goos }}" = "windows" ]; then
+          mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
+          mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}.exe"
+        elif [ "${{ matrix.goos }}" = "linux" ]; then
+          mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.tar.gz"
+          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+        elif [ "${{ matrix.goos }}" = "darwin" ]; then
+          mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ matrix.goos }}.app"
+          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ matrix.goos }}"
+        fi
+        
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: tikulocal-${{ matrix.goos }}-${{ matrix.goarch }}-${{ github.event.inputs.version }}
+        path: |
+          *.exe
+          *.app
+          *.tar.gz
+          tikulocal-*
+        retention-days: 30
+        
+    - name: 显示构建信息
+      run: |
+        echo "构建完成!"
+        echo "版本: ${{ github.event.inputs.version }}"
+        echo "平台: ${{ matrix.goos }}-${{ matrix.goarch }}"
+        echo "构建类型: ${{ github.event.inputs.build_type }}"
+        ls -la *.exe *.app *.tar.gz tikulocal-* 2>/dev/null || echo "未找到构建产物"
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event.inputs.build_type == 'release'
+    
+    steps:
+    - name: 下载所有构建产物
+      uses: actions/download-artifact@v4
+      
+    - name: 创建发布
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: 题库管理系统 ${{ github.event.inputs.version }}
+        body: |
+          ## 🎉 新版本发布
+          
+          **版本**: ${{ github.event.inputs.version }}
+          **构建时间**: ${{ github.event.inputs.build_type }}
+          
+          ### 📦 下载
+          
+          请根据您的操作系统选择对应的安装包：
+          
+          - **Windows**: 下载 `.exe` 文件
+          - **Linux**: 下载 `.tar.gz` 文件
+          - **macOS**: 下载 `.app` 文件
+          
+          ### 🚀 更新内容
+          
+          请查看 [CHANGELOG.md](CHANGELOG.md) 了解详细更新内容。
+          
+          ### 📋 使用说明
+          
+          1. 下载对应平台的安装包
+          2. 解压或安装程序
+          3. 运行程序开始使用
+          
+          ### 🐛 问题反馈
+          
+          如果遇到问题，请提交 [Issue](https://github.com/${{ github.repository }}/issues)
+        draft: false
+        prerelease: false
+        files: |
+          tikulocal-*/*
+          *.exe
+          *.app
+          *.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

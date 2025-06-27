@@ -1,0 +1,129 @@
+name: 构建题库管理系统 (直接发布)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: v1.2.6)'
+        required: true
+        default: 'v1.2.6'
+      platform:
+        description: '目标平台'
+        required: true
+        default: 'windows'
+        type: choice
+        options:
+        - windows
+        - linux
+        - macos
+
+env:
+  GO_VERSION: '1.21'
+  FYNE_VERSION: 'latest'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置Go环境
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: 安装fyne工具
+      run: go install fyne.io/tools/cmd/fyne@${{ env.FYNE_VERSION }}
+        
+    - name: 下载依赖
+      run: go mod download
+      
+    - name: 运行测试
+      run: go test -v ./...
+      
+    - name: 构建应用
+      run: |
+        # 设置目标平台
+        export GOOS=${{ github.event.inputs.platform }}
+        export GOARCH=amd64
+        
+        echo "构建平台: $GOOS-$GOARCH"
+        
+        # 构建可执行文件
+        go build -ldflags="-s -w" -o tikulocal .
+        
+        # 使用fyne打包
+        if [ "$GOOS" = "windows" ]; then
+          fyne package -os windows -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        elif [ "$GOOS" = "linux" ]; then
+          fyne package -os linux -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        elif [ "$GOOS" = "macos" ]; then
+          fyne package -os darwin -icon icon.png -name "题库管理系统" -appID "com.tikulocal.app"
+        fi
+        
+    - name: 重命名构建产物
+      run: |
+        # 重命名文件以便识别
+        if [ "${{ github.event.inputs.platform }}" = "windows" ]; then
+          mv "题库管理系统.exe" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
+          mv tikulocal.exe "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.exe"
+        elif [ "${{ github.event.inputs.platform }}" = "linux" ]; then
+          mv "题库管理系统.tar.gz" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.tar.gz"
+          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+        elif [ "${{ github.event.inputs.platform }}" = "macos" ]; then
+          mv "题库管理系统.app" "题库管理系统-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}.app"
+          mv tikulocal "tikulocal-${{ github.event.inputs.version }}-${{ github.event.inputs.platform }}"
+        fi
+        
+    - name: 创建Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: 题库管理系统 ${{ github.event.inputs.version }}
+        body: |
+          ## 🎉 新版本发布
+          
+          **版本**: ${{ github.event.inputs.version }}
+          **平台**: ${{ github.event.inputs.platform }}
+          **构建时间**: ${{ github.run_number }}
+          
+          ### 📦 下载
+          
+          请下载对应平台的安装包：
+          
+          ${{ github.event.inputs.platform == 'windows' && '- **Windows**: 下载 `.exe` 文件' || '' }}
+          ${{ github.event.inputs.platform == 'linux' && '- **Linux**: 下载 `.tar.gz` 文件' || '' }}
+          ${{ github.event.inputs.platform == 'macos' && '- **macOS**: 下载 `.app` 文件' || '' }}
+          
+          ### 🚀 更新内容
+          
+          请查看 [CHANGELOG.md](CHANGELOG.md) 了解详细更新内容。
+          
+          ### 📋 使用说明
+          
+          1. 下载对应平台的安装包
+          2. 解压或安装程序
+          3. 运行程序开始使用
+          
+          ### 🐛 问题反馈
+          
+          如果遇到问题，请提交 [Issue](https://github.com/${{ github.repository }}/issues)
+        draft: false
+        prerelease: false
+        files: |
+          *.exe
+          *.app
+          *.tar.gz
+          tikulocal-*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 显示构建信息
+      run: |
+        echo "✅ 构建和发布完成!"
+        echo "📦 版本: ${{ github.event.inputs.version }}"
+        echo "🖥️ 平台: ${{ github.event.inputs.platform }}"
+        echo "📁 构建产物:"
+        ls -la *.exe *.app *.tar.gz tikulocal-* 2>/dev/null || echo "未找到构建产物" 
