@@ -1,0 +1,3 @@
+# TikuLocal测试依赖
+requests>=2.25.0
+psutil>=5.8.0

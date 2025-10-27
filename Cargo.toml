@@ -1,0 +1,37 @@
+[package]
+name = "tikulocal"
+version = "0.1.0"
+edition = "2021"
+
+# 图标配置
+[package.metadata.winres]
+Icon = "icon.png"
+OriginalFilename = "tikulocal.exe"
+ProductName = "TikuLocal"
+FileDescription = "TikuLocal 题库管理系统"
+
+[dependencies]
+# Web框架
+axum = "0.7"
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+
+# 数据库
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 工具库
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Windows图标配置
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+panic = "abort"
