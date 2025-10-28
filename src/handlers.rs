@@ -214,8 +214,9 @@ pub async fn import_questions(
     let service = QuestionService::new(pool);
     let mut success_count = 0;
     let mut failed_count = 0;
+    let mut errors = Vec::new();
 
-    for question_request in request.questions {
+    for (index, question_request) in request.questions.into_iter().enumerate() {
         match service.create_question(
             &question_request.question,
             question_request.options,
@@ -224,7 +225,9 @@ pub async fn import_questions(
         ).await {
             Ok(_) => success_count += 1,
             Err(e) => {
-                error!("导入题目失败: {}", e);
+                let error_msg = format!("题目 {} 导入失败: {}", index + 1, e);
+                error!("{}", error_msg);
+                errors.push(error_msg);
                 failed_count += 1;
             }
         }
@@ -238,6 +241,7 @@ pub async fn import_questions(
             data: ImportResult {
                 success_count,
                 failed_count,
+                errors: if errors.is_empty() { None } else { Some(errors) },
             },
         },
     };

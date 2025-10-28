@@ -904,11 +904,25 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    importData = JSON.parse(e.target.result);
+                    const parsedData = JSON.parse(e.target.result);
+                    
+                    // 验证基本结构
+                    if (!parsedData || typeof parsedData !== 'object') {
+                        throw new Error('JSON格式错误：根对象必须是对象');
+                    }
+                    
+                    if (!parsedData.questions) {
+                        throw new Error('JSON格式错误：缺少questions字段');
+                    }
+                    
+                    importData = parsedData;
                     displayImportPreview();
                     showNotification('文件解析成功', 'success');
                 } catch (error) {
                     showNotification('文件解析失败: ' + error.message, 'error');
+                    // 清除可能的部分数据
+                    importData = null;
+                    clearImportPreview();
                 }
             };
             reader.readAsText(file);
@@ -919,6 +933,21 @@
             if (!importData || !importData.questions) {
                 showNotification('无效的导入格式', 'error');
                 return;
+            }
+            
+            // 验证questions是否为数组
+            if (!Array.isArray(importData.questions)) {
+                showNotification('导入格式错误：questions必须是数组', 'error');
+                return;
+            }
+            
+            // 验证每个题目是否包含必要字段
+            for (let i = 0; i < importData.questions.length; i++) {
+                const question = importData.questions[i];
+                if (!question.question || question.type === undefined) {
+                    showNotification(`题目 ${i+1} 格式错误：缺少必要字段 question 或 type`, 'error');
+                    return;
+                }
             }
             
             const preview = document.getElementById('import-preview');
@@ -954,16 +983,25 @@
                 
                 if (response.ok) {
                     const result = await response.json();
-                    showNotification(result.message, result.success ? 'success' : 'error');
+                    // 正确访问嵌套的响应结构
+                    const message = result.data && result.data.msg ? result.data.msg : '导入完成';
+                    const success = result.data && result.data.success !== undefined ? result.data.success : true;
+                    showNotification(message, success ? 'success' : 'error');
                     
                     // 显示导入结果
                     const resultsDiv = document.getElementById('import-results');
+                    
+                    // 安全地访问可能不存在的属性
+                    const importedCount = result.data && result.data.data ? result.data.data.success_count : 0;
+                    const failedCount = result.data && result.data.data ? result.data.data.failed_count : 0;
+                    const errors = result.data && result.data.data && result.data.data.errors ? result.data.data.errors : [];
+                    
                     resultsDiv.innerHTML = `
                         <div class="question-card">
                             <h3>导入结果</h3>
-                            <p>成功导入: ${result.imported_count} 题</p>
-                            <p>导入失败: ${result.failed_count} 题</p>
-                            ${result.errors.length > 0 ? `<p>错误信息:</p><ul>${result.errors.map(err => `<li>${err}</li>`).join('')}</ul>` : ''}
+                            <p>成功导入: ${importedCount} 题</p>
+                            <p>导入失败: ${failedCount} 题</p>
+                            ${errors && errors.length > 0 ? `<p>错误信息:</p><ul>${errors.map(err => `<li>${err}</li>`).join('')}</ul>` : ''}
                         </div>
                     `;
                     

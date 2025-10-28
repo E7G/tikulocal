@@ -908,20 +908,53 @@
     {
       "question": "鲍特的哪部电影是第一次用电影画面说出“与此同时”这样的意思。()",
       "options": [
-        "《一个美国消防员的生活》",
-        "《从鹰巢中救出的人》",
-        "《明目张胆的白日抢劫》",
-        "《火车大劫案》"
+        "《一个美国消防员的生活》 B.《从鹰巢中救出的人》 C.《明目张胆的白日抢劫》 D.《火车大劫案》"
       ],
       "type": 0,
       "answer": {
-        "answerKey": [],
-        "answerKeyText": "",
-        "answerIndex": [],
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
         "answerText": "",
         "bestAnswer": [],
         "allAnswer": [
           []
+        ]
+      }
+    },
+    {
+      "question": "下列哪些电影是安东尼奥尼的作品。（）",
+      "options": [
+        "《红色沙漠》",
+        "《火车大劫案》",
+        "《放大》",
+        "《眩晕》"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "C"
+        ],
+        "answerKeyText": "AC",
+        "answerIndex": [
+          0,
+          2
+        ],
+        "answerText": "《红色沙漠》",
+        "bestAnswer": [
+          "《红色沙漠》",
+          "《放大》"
+        ],
+        "allAnswer": [
+          [
+            "《红色沙漠》",
+            "《放大》"
+          ]
         ]
       }
     },

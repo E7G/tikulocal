@@ -144,6 +144,7 @@ pub struct ImportQuestionsData {
 pub struct ImportResult {
     pub success_count: i32,
     pub failed_count: i32,
+    pub errors: Option<Vec<String>>,
 }
 
 // 删除题目响应
