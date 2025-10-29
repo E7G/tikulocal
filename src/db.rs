@@ -37,7 +37,7 @@ async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         r#"
         CREATE TABLE IF NOT EXISTS questions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question TEXT NOT NULL,
+            question TEXT NOT NULL UNIQUE,
             options TEXT,
             type INTEGER NOT NULL,
             answer TEXT NOT NULL
@@ -97,7 +97,19 @@ impl QuestionService {
         ).await
     }
 
-    // 创建题目 - 统一JSON序列化
+    // 检查题目是否已存在
+    pub async fn question_exists(&self, question: &str) -> Result<bool, sqlx::Error> {
+        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM questions WHERE question = ?"
+        )
+        .bind(question)
+        .fetch_one(&self.pool)
+        .await?;
+        
+        Ok(count > 0)
+    }
+
+    // 创建题目 - 统一JSON序列化，支持去重
     pub async fn create_question(&self, question: &str, options: Option<Vec<String>>, question_type: i32, answer: &Answer) -> Result<i64, sqlx::Error> {
         let options_json = options.as_ref().map(|o| serde_json::to_string(o).ok()).flatten();
         let answer_json = serde_json::to_string(answer).map_err(|e| sqlx::Error::ColumnDecode {

@@ -204,7 +204,7 @@ pub async fn get_all_questions(
     Ok(Json(response))
 }
 
-// 导入题目 - 使用业务逻辑层
+// 导入题目 - 使用业务逻辑层，支持去重
 pub async fn import_questions(
     State(pool): State<SqlitePool>,
     Json(request): Json<ImportQuestionsRequest>,
@@ -214,18 +214,35 @@ pub async fn import_questions(
     let service = QuestionService::new(pool);
     let mut success_count = 0;
     let mut failed_count = 0;
+    let mut skipped_count = 0;
     let mut errors = Vec::new();
 
     for (index, question_request) in request.questions.into_iter().enumerate() {
-        match service.create_question(
-            &question_request.question,
-            question_request.options,
-            question_request.question_type,
-            &question_request.answer
-        ).await {
-            Ok(_) => success_count += 1,
+        // 检查题目是否已存在
+        match service.question_exists(&question_request.question).await {
+            Ok(true) => {
+                info!("跳过重复题目: {}", question_request.question);
+                skipped_count += 1;
+            },
+            Ok(false) => {
+                // 题目不存在，正常创建
+                match service.create_question(
+                    &question_request.question,
+                    question_request.options,
+                    question_request.question_type,
+                    &question_request.answer
+                ).await {
+                    Ok(_) => success_count += 1,
+                    Err(e) => {
+                        let error_msg = format!("题目 {} 导入失败: {}", index + 1, e);
+                        error!("{}", error_msg);
+                        errors.push(error_msg);
+                        failed_count += 1;
+                    }
+                }
+            },
             Err(e) => {
-                let error_msg = format!("题目 {} 导入失败: {}", index + 1, e);
+                let error_msg = format!("检查题目 {} 是否存在时出错: {}", index + 1, e);
                 error!("{}", error_msg);
                 errors.push(error_msg);
                 failed_count += 1;
@@ -236,7 +253,7 @@ pub async fn import_questions(
     let response = ImportQuestionsResponse {
         code: 200,
         data: ImportQuestionsData {
-            msg: format!("导入完成，成功: {}, 失败: {}", success_count, failed_count),
+            msg: format!("导入完成，成功: {}, 跳过重复: {}, 失败: {}", success_count, skipped_count, failed_count),
             success: true,
             data: ImportResult {
                 success_count,

@@ -1,0 +1,3957 @@
+{
+  "questions": [
+    {
+      "question": "（）类电影尤其具有“窗户”功能。",
+      "options": [
+        "幻想风格",
+        "现实风格",
+        "惊悚风格",
+        "喜剧风格"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "现实风格",
+        "bestAnswer": [
+          "现实风格"
+        ],
+        "allAnswer": [
+          [
+            "现实风格"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "从某种角度上来说，贾樟柯的电影具有社会活化石的作用。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影可以说就是我们的生活，已经成为了我们生活的一部分。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列哪一部电影是反思影像与现实关系的电影。（）",
+      "options": [
+        "《神话》",
+        "《阿甘正传》",
+        "《西蒙尼》",
+        "《淘金记》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《西蒙尼》",
+        "bestAnswer": [
+          "《西蒙尼》"
+        ],
+        "allAnswer": [
+          [
+            "《西蒙尼》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列哪一项不属于波德里亚所说的影视与现实的关系。（）",
+      "options": [
+        "影像是现实的反映",
+        "影像与真实没有任何关系",
+        "影像掩盖和篡改现实",
+        "影像不能掩盖真实的不在场"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "影视创造我们的生活，也虚拟或扭曲我们的生活。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "根据麦克卢汉提出的“一切媒体都是人体延伸”的观点，电影是人类（）的延伸。",
+      "options": [
+        "想象",
+        "触觉",
+        "视觉",
+        "听觉"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "想象",
+        "bestAnswer": [
+          "想象"
+        ],
+        "allAnswer": [
+          [
+            "想象"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影所代表的形象思维，会与逻辑思维相互对立并互补。所以一般形象思维比较好的人逻辑思维就比较差。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "好莱坞电影中“奇观化”法则指的是电影要表现出现实生活中难得一见的东西。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "面对当今的电影，我们应该反思和批判的是（）。",
+      "options": [
+        "意识形态欺骗性",
+        "电影的平面化、单面化问题",
+        "媒体的强势话语霸权",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "以上都对",
+        "bestAnswer": [
+          "以上都对"
+        ],
+        "allAnswer": [
+          [
+            "以上都对"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于“摄影机如自来水”，下列说法有误的是（）。",
+      "options": [
+        "它是电影理论史上非常有名的一句话。",
+        "这句话主要是强调摄影师对电影创作的重要性。",
+        "由法国电影理论家阿斯特吕克提出。",
+        "意思是运用摄影机语言漂亮流畅地表达思想，叙述故事。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "这句话主要是强调摄影师对电影创作的重要性。",
+        "bestAnswer": [
+          "这句话主要是强调摄影师对电影创作的重要性。"
+        ],
+        "allAnswer": [
+          [
+            "这句话主要是强调摄影师对电影创作的重要性。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "根据库勒的“游戏冲动说”，能够缓和感性和理性冲动间矛盾的游戏是（）。",
+      "options": [
+        "阅读和体验",
+        "艺术创造",
+        "社会交往",
+        "辩证思维"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "艺术创造",
+        "bestAnswer": [
+          "艺术创造"
+        ],
+        "allAnswer": [
+          [
+            "艺术创造"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "只有电影（）的时候，电影才开始被看成是艺术的。",
+      "options": [
+        "有自己的语言方式",
+        "具有戏剧性",
+        "被社会大众接受",
+        "成为全方位的欣赏"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "有自己的语言方式",
+        "bestAnswer": [
+          "有自己的语言方式"
+        ],
+        "allAnswer": [
+          [
+            "有自己的语言方式"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影中属于文学性的是（）。",
+      "options": [
+        "舞蹈设计",
+        "对话设计",
+        "故事设计",
+        "人物关系设计"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "B",
+          "C",
+          "D"
+        ],
+        "answerKeyText": "BCD",
+        "answerIndex": [
+          1,
+          2,
+          3
+        ],
+        "answerText": "对话设计",
+        "bestAnswer": [
+          "对话设计",
+          "故事设计",
+          "人物关系设计"
+        ],
+        "allAnswer": [
+          [
+            "对话设计",
+            "故事设计",
+            "人物关系设计"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于我国电影的发展历程，下列说法有误的是（）。",
+      "options": [
+        "中国第四导演把电影论证成为艺术",
+        "上世纪六七十年代电影是宣传工具",
+        "中国第五代导演把电影彻底市场化",
+        "现在电影是文化创意产业"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "中国第五代导演把电影彻底市场化",
+        "bestAnswer": [
+          "中国第五代导演把电影彻底市场化"
+        ],
+        "allAnswer": [
+          [
+            "中国第五代导演把电影彻底市场化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影之所以被称为“第七艺术”，主要是因为其出现与（）密切相关。",
+      "options": [
+        "社会文明",
+        "科学技术",
+        "意识形态",
+        "人们接受程度"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "科学技术",
+        "bestAnswer": [
+          "科学技术"
+        ],
+        "allAnswer": [
+          [
+            "科学技术"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电视和电影最大的区别是（）。",
+      "options": [
+        "制作者",
+        "目标受众",
+        "媒介特征",
+        "传播内容"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "媒介特征",
+        "bestAnswer": [
+          "媒介特征"
+        ],
+        "allAnswer": [
+          [
+            "媒介特征"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "卡努杜将电影称为“第七艺术”说明他已经认识到电影具有“综合的”的本性。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电视被誉为“第八艺术”，其诞生标志是NBC第一次远距离发送图像并被成功接收。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "关于希区柯克，下列说法中有误的是（）。",
+      "options": [
+        "他有一个喜好，其所有电影中他都会露脸。",
+        "他是一名电影摄影师。",
+        "他被称为悬念大师。",
+        "他受弗洛伊德影响，其电影里有很多精神分析因素。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "他是一名电影摄影师。",
+        "bestAnswer": [
+          "他是一名电影摄影师。"
+        ],
+        "allAnswer": [
+          [
+            "他是一名电影摄影师。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "卓别林的作品不包括（）。",
+      "options": [
+        "《爱德华大夫》",
+        "《城市之光》",
+        "《摩登时代》",
+        "《淘金记》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "《爱德华大夫》",
+        "bestAnswer": [
+          "《爱德华大夫》"
+        ],
+        "allAnswer": [
+          [
+            "《爱德华大夫》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "希区柯克的作品不包括（）。",
+      "options": [
+        "《后窗》",
+        "《夺魂岛》",
+        "《蝴蝶梦》",
+        "《39级台阶》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "《夺魂岛》",
+        "bestAnswer": [
+          "《夺魂岛》"
+        ],
+        "allAnswer": [
+          [
+            "《夺魂岛》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影通过视觉自留原理产生。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "可考的第一部有声电影是（）。",
+      "options": [
+        "《绝世歌王》",
+        "《红色沙漠》",
+        "《谁陷害了兔子罗杰》",
+        "《浮华世界》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "《绝世歌王》",
+        "bestAnswer": [
+          "《绝世歌王》"
+        ],
+        "allAnswer": [
+          [
+            "《绝世歌王》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是人们常说的第一部真正意义上的彩色电影。",
+      "options": [
+        "《绝世歌王》",
+        "《红色沙漠》",
+        "《谁陷害了兔子罗杰》",
+        "《浮华世界》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "《红色沙漠》",
+        "bestAnswer": [
+          "《红色沙漠》"
+        ],
+        "allAnswer": [
+          [
+            "《红色沙漠》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）隐喻过教会控制电影的历史。",
+      "options": [
+        "《艺术家》",
+        "《红色沙漠》",
+        "《天堂电影院》",
+        "《雨中曲》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《天堂电影院》",
+        "bestAnswer": [
+          "《天堂电影院》"
+        ],
+        "allAnswer": [
+          [
+            "《天堂电影院》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《艺术家》用黑白无声片的形式展现了从无声电影到有声电影的历史。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "鲍特的哪部电影是第一次用电影画面说出“与此同时”这样的意思。（）",
+      "options": [
+        "《一个美国消防员的生活》",
+        "《从鹰巢中救出的人》",
+        "《明目张胆的白日抢劫》",
+        "《火车大劫案》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "《火车大劫案》",
+        "bestAnswer": [
+          "《火车大劫案》"
+        ],
+        "allAnswer": [
+          [
+            "《火车大劫案》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《月球旅行记》是下面哪一位著名电影大师的作品。（）",
+      "options": [
+        "卢米埃尔",
+        "梅里爱",
+        "鲍特",
+        "格里菲斯"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "梅里爱",
+        "bestAnswer": [
+          "梅里爱"
+        ],
+        "allAnswer": [
+          [
+            "梅里爱"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列哪些电影是安东尼奥尼的作品。（）",
+      "options": [
+        "《红色沙漠》",
+        "《火车大劫案》",
+        "《放大》",
+        "《眩晕》"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "C"
+        ],
+        "answerKeyText": "AC",
+        "answerIndex": [
+          0,
+          2
+        ],
+        "answerText": "《红色沙漠》",
+        "bestAnswer": [
+          "《红色沙漠》",
+          "《放大》"
+        ],
+        "allAnswer": [
+          [
+            "《红色沙漠》",
+            "《放大》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "通过布莱顿学派，欧洲电影转到了美国。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）的功劳在电影史上可归结为自觉使用蒙太奇电影。",
+      "options": [
+        "鲍特、格里菲斯",
+        "卢米埃尔",
+        "梅里爱",
+        "布莱顿学派"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "鲍特、格里菲斯",
+        "bestAnswer": [
+          "鲍特、格里菲斯"
+        ],
+        "allAnswer": [
+          [
+            "鲍特、格里菲斯"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是格里菲斯的代表作之一。",
+      "options": [
+        "《39级台阶》",
+        "《放大》",
+        "《一个国家的诞生》",
+        "《爱情三部曲》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《一个国家的诞生》",
+        "bestAnswer": [
+          "《一个国家的诞生》"
+        ],
+        "allAnswer": [
+          [
+            "《一个国家的诞生》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《一个国家的诞生》，下列说法正确的是（）。",
+      "options": [
+        "它描述的是美国南北战争。",
+        "电影运用影像化的语言塑造了很多鲜活人物。",
+        "电影的主旨在于歌颂美国黑奴制度的废除。",
+        "它是一部史诗性电影。"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "B",
+          "D"
+        ],
+        "answerKeyText": "ABD",
+        "answerIndex": [
+          0,
+          1,
+          3
+        ],
+        "answerText": "它描述的是美国南北战争。",
+        "bestAnswer": [
+          "它描述的是美国南北战争。",
+          "电影运用影像化的语言塑造了很多鲜活人物。",
+          "它是一部史诗性电影。"
+        ],
+        "allAnswer": [
+          [
+            "它描述的是美国南北战争。",
+            "电影运用影像化的语言塑造了很多鲜活人物。",
+            "它是一部史诗性电影。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《党同伐异》在100年前交替讲述了四个不同时间、空间、国家的故事。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "伊朗的电影《一次别离》属于表现主义美学电影。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "《党同伐异》开创了（）电影原型。",
+      "options": [
+        "同源叙述",
+        "分段叙述",
+        "逆向叙述",
+        "线性叙述"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "分段叙述",
+        "bestAnswer": [
+          "分段叙述"
+        ],
+        "allAnswer": [
+          [
+            "分段叙述"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列电影中，与《党同伐异》在叙述方式上不完全一致的是（）。",
+      "options": [
+        "《通天塔》",
+        "《爱情麻辣烫》",
+        "《罗生门》",
+        "《重庆森林》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《罗生门》",
+        "bestAnswer": [
+          "《罗生门》"
+        ],
+        "allAnswer": [
+          [
+            "《罗生门》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《公民凯恩》，下列说法正确的是（）。",
+      "options": [
+        "同一个人的故事，由不同人讲述。",
+        "同一个故事起因，由不同条件变化结局。",
+        "同一个故事结局，由不同人讲述。",
+        "同一个人的故事，由不同人表演。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "同一个人的故事，由不同人讲述。",
+        "bestAnswer": [
+          "同一个人的故事，由不同人讲述。"
+        ],
+        "allAnswer": [
+          [
+            "同一个人的故事，由不同人讲述。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "“库里肖夫效应”指的是不同的镜头剪辑以达成不同的观众反应。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是《战舰波将金号》的导演。",
+      "options": [
+        "库里肖夫",
+        "维尔托夫",
+        "普多夫金",
+        "爱森斯坦"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "爱森斯坦",
+        "bestAnswer": [
+          "爱森斯坦"
+        ],
+        "allAnswer": [
+          [
+            "爱森斯坦"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于普多夫金和爱森斯坦，下列说法有误的是（）。",
+      "options": [
+        "爱森斯坦是理性的蒙太奇。",
+        "普多夫金的风格是有些诗化的。",
+        "普多夫金主张蒙太奇是冲突的。",
+        "他们都支持当时的苏联革命。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "普多夫金主张蒙太奇是冲突的。",
+        "bestAnswer": [
+          "普多夫金主张蒙太奇是冲突的。"
+        ],
+        "allAnswer": [
+          [
+            "普多夫金主张蒙太奇是冲突的。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "苏联导演（）认为“电影艺术的基础是蒙太奇”。",
+      "options": [
+        "爱森斯坦",
+        "维尔托夫",
+        "库里肖夫",
+        "普多夫金"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "普多夫金",
+        "bestAnswer": [
+          "普多夫金"
+        ],
+        "allAnswer": [
+          [
+            "普多夫金"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《战舰波将金号》将苏联的蒙太奇学派的蒙太奇剪辑技术运用并发挥到了极致。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在《战舰波将金号》中，敖德萨阶梯片段主要是表现出（）的冲突。",
+      "options": [
+        "向外和向内的力",
+        "向上和向下的力",
+        "向前和向后的力",
+        "向左和向右的力"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "向上和向下的力",
+        "bestAnswer": [
+          "向上和向下的力"
+        ],
+        "allAnswer": [
+          [
+            "向上和向下的力"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在《战舰波将金号》中，镜头剪辑里力的冲突不包括（）。",
+      "options": [
+        "大和小的冲突",
+        "静止和运动的冲突",
+        "场景和场景的冲突",
+        "运动和静止的冲突"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "场景和场景的冲突",
+        "bestAnswer": [
+          "场景和场景的冲突"
+        ],
+        "allAnswer": [
+          [
+            "场景和场景的冲突"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在《战舰波将金号》中，表现出了导演对机械和机器的颂扬。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在《战舰波将金号》中，其高潮设定是符合黄金分割率的。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在《战舰波将金号》中，敖德萨阶梯的片段里四个阶段的内容依次是（）。",
+      "options": [
+        "婴儿车下滑、母子与军队冲突、奔逃、舰队开炮",
+        "母子与军队冲突、奔逃、婴儿车下滑、舰队开炮",
+        "奔逃、母子与军队冲突、婴儿车下滑、舰队开炮",
+        "舰队开炮、母子与军队冲突、奔逃、婴儿车下滑"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "奔逃、母子与军队冲突、婴儿车下滑、舰队开炮",
+        "bestAnswer": [
+          "奔逃、母子与军队冲突、婴儿车下滑、舰队开炮"
+        ],
+        "allAnswer": [
+          [
+            "奔逃、母子与军队冲突、婴儿车下滑、舰队开炮"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在观看《战舰波将金号》中的敖萨阶梯片段时，以下三个时长由长到短依次时（）。",
+      "options": [
+        "心理时长、实际时长、放映时长",
+        "放映时长、心理时长、实际时长",
+        "心理时长、放映时长、实际时长",
+        "放映时长、实际时长、心理时长"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "心理时长、放映时长、实际时长",
+        "bestAnswer": [
+          "心理时长、放映时长、实际时长"
+        ],
+        "allAnswer": [
+          [
+            "心理时长、放映时长、实际时长"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "巴赞认为戏剧化的电影模式打破了现实生活的整体感主要表现在（）。",
+      "options": [
+        "人物性格和故事",
+        "空间和人物性格",
+        "时间和空间",
+        "时间和人物性格"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "时间和空间",
+        "bestAnswer": [
+          "时间和空间"
+        ],
+        "allAnswer": [
+          [
+            "时间和空间"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于巴赞的电影思想，正确的是（）。",
+      "options": [
+        "巴赞提出了“总体现实主义”说。",
+        "巴赞反对长镜头理论。",
+        "巴赞认为电影的产生来源于我们的木乃伊情结。",
+        "巴赞赞同人道主义精神和理想。"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "C",
+          "D"
+        ],
+        "answerKeyText": "ACD",
+        "answerIndex": [
+          0,
+          2,
+          3
+        ],
+        "answerText": "巴赞提出了“总体现实主义”说。",
+        "bestAnswer": [
+          "巴赞提出了“总体现实主义”说。",
+          "巴赞认为电影的产生来源于我们的木乃伊情结。",
+          "巴赞赞同人道主义精神和理想。"
+        ],
+        "allAnswer": [
+          [
+            "巴赞提出了“总体现实主义”说。",
+            "巴赞认为电影的产生来源于我们的木乃伊情结。",
+            "巴赞赞同人道主义精神和理想。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《战舰波将金号》主要展现的是体现直线、曲线的现代美感。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）认为“不是艺术模仿生活，而是生活模仿艺术”。",
+      "options": [
+        "巴赞",
+        "汉德逊",
+        "王尔德",
+        "让米特里"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "王尔德",
+        "bestAnswer": [
+          "王尔德"
+        ],
+        "allAnswer": [
+          [
+            "王尔德"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）认为长镜头与蒙太奇之间没有美学上的对立。",
+      "options": [
+        "巴赞",
+        "汉德逊",
+        "王尔德",
+        "让米特里"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "让米特里",
+        "bestAnswer": [
+          "让米特里"
+        ],
+        "allAnswer": [
+          [
+            "让米特里"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "从时间和空间上来看，蒙太奇手法更倾向于小说。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "巴赞强调的事件连续性指的是使用景深镜头。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "尼葛洛庞蒂在他的《数字化生存》一书中认为物质时代世界的基本粒子如果说是原子的话，那么构成信息时代新世界的基本粒子就是（）。",
+      "options": [
+        "质子",
+        "中子",
+        "夸克",
+        "比特"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "比特",
+        "bestAnswer": [
+          "比特"
+        ],
+        "allAnswer": [
+          [
+            "比特"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下面关于《阿凡达》的表述不正确的一项是（）。",
+      "options": [
+        "涉及人文精神",
+        "体现技术美学",
+        "法国著名电影",
+        "运用电脑特技"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "法国著名电影",
+        "bestAnswer": [
+          "法国著名电影"
+        ],
+        "allAnswer": [
+          [
+            "法国著名电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "技术美学是一把双刃剑。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "戏剧的独特性在于（）。",
+      "options": [
+        "运动性",
+        "时间性",
+        "现场性",
+        "综合性"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "现场性",
+        "bestAnswer": [
+          "现场性"
+        ],
+        "allAnswer": [
+          [
+            "现场性"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于电影表演里的后现代化，下列说法有误的是（）。",
+      "options": [
+        "布莱希特表演体系属于后现代",
+        "它主张让观众意识到这是表演",
+        "周星驰版的《西游记》属于这个风格",
+        "它要求生活和表演很接近"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "它要求生活和表演很接近",
+        "bestAnswer": [
+          "它要求生活和表演很接近"
+        ],
+        "allAnswer": [
+          [
+            "它要求生活和表演很接近"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "一般来说，戏剧表演更本色化，电影表演演技性更强。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "一些理论工作者从其他艺术门类角度出发，会认为电影艺术是综合性的。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《偷自行车的人》中，核心戏剧冲突是（）。",
+      "options": [
+        "主人公的工作",
+        "一个穷人偷了自行车",
+        "主人公寻找自行车",
+        "人和自行车的关系"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "人和自行车的关系",
+        "bestAnswer": [
+          "人和自行车的关系"
+        ],
+        "allAnswer": [
+          [
+            "人和自行车的关系"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影语言具有一种时空表现的自由度，其时空指的是（）。",
+      "options": [
+        "剧情时空",
+        "物理时空",
+        "心理时空",
+        "实质时空"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "心理时空",
+        "bestAnswer": [
+          "心理时空"
+        ],
+        "allAnswer": [
+          [
+            "心理时空"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《正午》的特点是节奏的发展时间跟影片的放映时间基本一致。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "一般来说，散文化、哲理化风格的电影里都没有戏剧性。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "因为（），中国提出了“电影要与戏剧离婚”的口号。",
+      "options": [
+        "市场自由化经济的影响",
+        "第四五代导演寻求电影的独立性价值",
+        "电影产业日渐衰落，不得不改革",
+        "新的电影技术带来更多形式"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "第四五代导演寻求电影的独立性价值",
+        "bestAnswer": [
+          "第四五代导演寻求电影的独立性价值"
+        ],
+        "allAnswer": [
+          [
+            "第四五代导演寻求电影的独立性价值"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "中国在20世纪（）提出了“电影要与戏剧离婚”的口号。",
+      "options": [
+        "60年代",
+        "90年代",
+        "80年代",
+        "70年代"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "80年代",
+        "bestAnswer": [
+          "80年代"
+        ],
+        "allAnswer": [
+          [
+            "80年代"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "相对来说，戏剧表演对于演员的要求以及演员的重要性都要更强一些。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于电影对话，下列说法正确的是（）。",
+      "options": [
+        "电影的对话是文学性的",
+        "电影的对话要符合人物性格",
+        "电影的对话要符合情节的发展",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "以上都对",
+        "bestAnswer": [
+          "以上都对"
+        ],
+        "allAnswer": [
+          [
+            "以上都对"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《狗镇》，下列说法错误的是（）。",
+      "options": [
+        "电影中有很多絮絮叨叨的对话。",
+        "从它不是很商业化的电影，具有实验性。",
+        "它深刻地反思了自由的内涵。",
+        "它采用了一种极端的戏剧化舞台布景。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "它深刻地反思了自由的内涵。",
+        "bestAnswer": [
+          "它深刻地反思了自由的内涵。"
+        ],
+        "allAnswer": [
+          [
+            "它深刻地反思了自由的内涵。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "法国导演雷内·克莱尔认为“一个盲人也可以领会大多数舞台剧的要点”，其实是指（）。",
+      "options": [
+        "舞台剧的音乐很重要",
+        "舞台剧的台词要简单易懂",
+        "舞台剧的对话很重要",
+        "舞台剧视觉美感不重要"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "舞台剧的对话很重要",
+        "bestAnswer": [
+          "舞台剧的对话很重要"
+        ],
+        "allAnswer": [
+          [
+            "舞台剧的对话很重要"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《公民凯恩》因为属于（）电影，而被叫做“好莱坞电影的另类”。",
+      "options": [
+        "诗化",
+        "小说化",
+        "音乐剧化",
+        "舞台剧化"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "诗化",
+        "bestAnswer": [
+          "诗化"
+        ],
+        "allAnswer": [
+          [
+            "诗化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不是改编自小说的电影。",
+      "options": [
+        "《国王的演讲》",
+        "《红高粱》",
+        "《芙蓉镇》",
+        "《一个都不能少》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "《国王的演讲》",
+        "bestAnswer": [
+          "《国王的演讲》"
+        ],
+        "allAnswer": [
+          [
+            "《国王的演讲》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "法国电影新浪潮的贡献之一就是表现了人的内心世界以及人的潜意识的流动。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不能作为电影造型语言。",
+      "options": [
+        "画面构图",
+        "色彩",
+        "光线",
+        "剧本"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "剧本",
+        "bestAnswer": [
+          "剧本"
+        ],
+        "allAnswer": [
+          [
+            "剧本"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是电影与文学的本质差异。",
+      "options": [
+        "语言",
+        "媒介",
+        "接受",
+        "形象"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "B",
+          "C",
+          "D"
+        ],
+        "answerKeyText": "BCD",
+        "answerIndex": [
+          1,
+          2,
+          3
+        ],
+        "answerText": "媒介",
+        "bestAnswer": [
+          "媒介",
+          "接受",
+          "形象"
+        ],
+        "allAnswer": [
+          [
+            "媒介",
+            "接受",
+            "形象"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "“古道、西风、瘦马”可以用一组大远景加一组空镜头来表现。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《黄土地》展开了对（）的反思。",
+      "options": [
+        "政治体系",
+        "社会阶级矛盾",
+        "中国传统文化",
+        "小农经济模式"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "中国传统文化",
+        "bestAnswer": [
+          "中国传统文化"
+        ],
+        "allAnswer": [
+          [
+            "中国传统文化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于电影造型的特点，下列说法正确的是（）。",
+      "options": [
+        "动中求静",
+        "静中求慢",
+        "静中求动",
+        "动中求慢"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "动中求静",
+        "bestAnswer": [
+          "动中求静"
+        ],
+        "allAnswer": [
+          [
+            "动中求静"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "从（）开始，中国电影造型美学开始崛起。",
+      "options": [
+        "《活着》",
+        "《黄土地》",
+        "《英雄》",
+        "《大红灯笼高高挂》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "《黄土地》",
+        "bestAnswer": [
+          "《黄土地》"
+        ],
+        "allAnswer": [
+          [
+            "《黄土地》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《黄土地》，下列说法正确的是（）。",
+      "options": [
+        "这是一部视觉感非常浓烈的电影。",
+        "这是一部节奏很慢的电影。",
+        "这是一部对声音比较吝啬的电影。",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "以上都对",
+        "bestAnswer": [
+          "以上都对"
+        ],
+        "allAnswer": [
+          [
+            "以上都对"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "从讲述手段来说，《英雄》比《罗生门》更有创意的原因是（）。",
+      "options": [
+        "采用了多人分别讲述的形式",
+        "用色彩扭转剧情",
+        "采用了平行蒙太奇形式",
+        "用色彩区分故事"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "用色彩区分故事",
+        "bestAnswer": [
+          "用色彩区分故事"
+        ],
+        "allAnswer": [
+          [
+            "用色彩区分故事"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《英雄》中色彩成为了一种非常有机的造型语言，其主色调是红色和蓝色。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "电影文化的第一层次、第二层次、第三层册分别指的是（）。",
+      "options": [
+        "物质产品、生活方式、人类精神结晶",
+        "人类精神结晶、物质产品、生活方式",
+        "生活方式、物质产品、人类精神结晶",
+        "人类精神结晶、生活方式、物质产品"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "物质产品、生活方式、人类精神结晶",
+        "bestAnswer": [
+          "物质产品、生活方式、人类精神结晶"
+        ],
+        "allAnswer": [
+          [
+            "物质产品、生活方式、人类精神结晶"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于视觉文化和印刷文化，下列说法错误的是（）。",
+      "options": [
+        "历史上印刷文化曾压抑过视觉文化。",
+        "现在占主导地位的是视觉文化，印刷文化很快就会消失。",
+        "印刷文化是理性文化。",
+        "如今，视觉文化已重新崛起。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "现在占主导地位的是视觉文化，印刷文化很快就会消失。",
+        "bestAnswer": [
+          "现在占主导地位的是视觉文化，印刷文化很快就会消失。"
+        ],
+        "allAnswer": [
+          [
+            "现在占主导地位的是视觉文化，印刷文化很快就会消失。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "从文化的价值取向角度看，影视艺术充满了消费文化，成为一种大众通俗艺术而非高雅艺术。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "电影媒介的变化对电影的的影响包括电影传播方式的变化以及（）。",
+      "options": [
+        "电影营销模式的变化",
+        "电影文化属性的变化",
+        "电影叙事方式、节奏的变化",
+        "电影制作流程的变化"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "电影叙事方式、节奏的变化",
+        "bestAnswer": [
+          "电影叙事方式、节奏的变化"
+        ],
+        "allAnswer": [
+          [
+            "电影叙事方式、节奏的变化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "所谓的“大片和小片的美学分化”主要指的是（）。",
+      "options": [
+        "电影内部叙事方式、节奏的变化",
+        "电影清晰度等技术的分化",
+        "电影造型的分化",
+        "电影投入成本的分化"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "电影内部叙事方式、节奏的变化",
+        "bestAnswer": [
+          "电影内部叙事方式、节奏的变化"
+        ],
+        "allAnswer": [
+          [
+            "电影内部叙事方式、节奏的变化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "与社交网络文化传播相比，电影是一种已经初步被古典化了的一种媒介。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "蔡元培所说的“以美育代宗教”指的是（）。",
+      "options": [
+        "把美学教育的方式融入宗教教育中",
+        "用美学理念看待宗教",
+        "鼓励人们学习艺术，远离宗教",
+        "在欣赏、创作艺术作品时带有神圣的崇高感"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "在欣赏、创作艺术作品时带有神圣的崇高感",
+        "bestAnswer": [
+          "在欣赏、创作艺术作品时带有神圣的崇高感"
+        ],
+        "allAnswer": [
+          [
+            "在欣赏、创作艺术作品时带有神圣的崇高感"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）认为“艺术是一个民族通过艺术家个人之手发出来的一种民族心声”。",
+      "options": [
+        "荣格",
+        "艾宾浩斯",
+        "弗洛伊德",
+        "阿德勒"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "荣格",
+        "bestAnswer": [
+          "荣格"
+        ],
+        "allAnswer": [
+          [
+            "荣格"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "具有精英意识的电影往往是把原型和神话掩盖在复杂的细节表面之下。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《红高粱》中所谓的“大仪式”指的是（）。",
+      "options": [
+        "国家成长、民族再生",
+        "家族的重建",
+        "“我奶奶”被献祭",
+        "“我奶奶”的壮烈牺牲"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "国家成长、民族再生",
+        "bestAnswer": [
+          "国家成长、民族再生"
+        ],
+        "allAnswer": [
+          [
+            "国家成长、民族再生"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《阳光灿烂的日子》中，马小军长大成人的标志是（）。",
+      "options": [
+        "成为小群体的领导",
+        "被小群体丢弃，友情割断",
+        "单相思的爱情失败",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "被小群体丢弃，友情割断",
+        "bestAnswer": [
+          "被小群体丢弃，友情割断"
+        ],
+        "allAnswer": [
+          [
+            "被小群体丢弃，友情割断"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "日常生活呈现出一种散文化的沉沦状态，而电影具有让人觉得远离生活状态的一种仪式化的功用。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影的意识形态文化指的是某个社会阶层通过电影叙述的方式来表达（）。",
+      "options": [
+        "理想",
+        "价值观念",
+        "利益需求",
+        "政治观点"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "价值观念",
+        "bestAnswer": [
+          "价值观念"
+        ],
+        "allAnswer": [
+          [
+            "价值观念"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影中的意识形态指的是（）。",
+      "options": [
+        "市民意识形态",
+        "知识分子精英意识形态",
+        "主流意识形态",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "以上都对",
+        "bestAnswer": [
+          "以上都对"
+        ],
+        "allAnswer": [
+          [
+            "以上都对"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在大部分美国电影中，隐含着的国家意识形态都体现出美国是美好的，是全世界的救星和警察。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列电影中，不属于青年、边缘意识形态的是（）。",
+      "options": [
+        "《非常夏日》",
+        "《长大成人》",
+        "《爱情麻辣烫》",
+        "《周末情人》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《爱情麻辣烫》",
+        "bestAnswer": [
+          "《爱情麻辣烫》"
+        ],
+        "allAnswer": [
+          [
+            "《爱情麻辣烫》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）在八十年代所创作的作品中表达了市民意识形态。",
+      "options": [
+        "陈凯歌",
+        "贾樟柯",
+        "冯小刚",
+        "张艺谋"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "冯小刚",
+        "bestAnswer": [
+          "冯小刚"
+        ],
+        "allAnswer": [
+          [
+            "冯小刚"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "相对于主流的意识形态来说，穿越剧的时空观属于一种线性的历史发展观。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "张艺谋的电影中，（）被称为“小品风格”。",
+      "options": [
+        "《摇啊摇，摇到外婆桥》",
+        "《英雄》",
+        "《有话好好说》",
+        "《大红灯笼高高挂》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《有话好好说》",
+        "bestAnswer": [
+          "《有话好好说》"
+        ],
+        "allAnswer": [
+          [
+            "《有话好好说》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《有话好好说》中，张艺谋表达的价值观趋向于偏重（）。",
+      "options": [
+        "精英意识形态",
+        "市民意识形态",
+        "边缘意识形态",
+        "主流意识形态"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "市民意识形态",
+        "bestAnswer": [
+          "市民意识形态"
+        ],
+        "allAnswer": [
+          [
+            "市民意识形态"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《有话好好说》的结尾存在角色反转，即市民身份与知识分子身份的转换。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "《红高粱》之前，第四代和第五代导演的电影作品都是以（）为主导的。",
+      "options": [
+        "精英意识形态",
+        "市民意识形态",
+        "边缘意识形态",
+        "主流意识形态"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "精英意识形态",
+        "bestAnswer": [
+          "精英意识形态"
+        ],
+        "allAnswer": [
+          [
+            "精英意识形态"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "揭示契约社会的来临同时揭示了电影的造梦功能的电影是（）。",
+      "options": [
+        "《不见不散》",
+        "《顽主》",
+        "《一地鸡毛》",
+        "《甲方乙方》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "《顽主》",
+        "bestAnswer": [
+          "《顽主》"
+        ],
+        "allAnswer": [
+          [
+            "《顽主》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "电影具有游戏性的功能、娱乐化的功能，主要是因为（）。",
+      "options": [
+        "它要产生市场收益",
+        "它可以让观众角色替代",
+        "它需要为观众产生快乐",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "它可以让观众角色替代",
+        "bestAnswer": [
+          "它可以让观众角色替代"
+        ],
+        "allAnswer": [
+          [
+            "它可以让观众角色替代"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）属于大众文化潮流的作品。",
+      "options": [
+        "《编辑部的故事》",
+        "《渴望》",
+        "《刘罗锅》",
+        "《雍正王朝》"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "B",
+          "C"
+        ],
+        "answerKeyText": "ABC",
+        "answerIndex": [
+          0,
+          1,
+          2
+        ],
+        "answerText": "《编辑部的故事》",
+        "bestAnswer": [
+          "《编辑部的故事》",
+          "《渴望》",
+          "《刘罗锅》"
+        ],
+        "allAnswer": [
+          [
+            "《编辑部的故事》",
+            "《渴望》",
+            "《刘罗锅》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "中国五四运动以后确立的知识分子精英、文化传统的语境中，向来不喜欢大众文化。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "张艺谋在（）中担任了主演而非摄影师的角色。",
+      "options": [
+        "《黄土地》",
+        "《大阅兵》",
+        "《老井》",
+        "《一个和八个》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《老井》",
+        "bestAnswer": [
+          "《老井》"
+        ],
+        "allAnswer": [
+          [
+            "《老井》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于贾樟柯的《小武》,下列说法错误的是()。",
+      "options": [
+        "它是一部商业电影",
+        "它是平民风格",
+        "采用知识分子的视角",
+        "它审视了中国的乡镇和乡镇里的小人物"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "它是一部商业电影",
+        "bestAnswer": [
+          "它是一部商业电影"
+        ],
+        "allAnswer": [
+          [
+            "它是一部商业电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在八九十年代,中国电影的划分情况是()。",
+      "options": [
+        "中国电影被划分为主旋律电影和非主旋律电影",
+        "中国电影被划分为精英电影和主旋律电影",
+        "中国电影被划分为商业电影和非商业电影",
+        "中国电影被划分为艺术电影、主旋律电影和商业电影"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "中国电影被划分为艺术电影、主旋律电影和商业电影",
+        "bestAnswer": [
+          "中国电影被划分为艺术电影、主旋律电影和商业电影"
+        ],
+        "allAnswer": [
+          [
+            "中国电影被划分为艺术电影、主旋律电影和商业电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是中国影视的大众文化的源泉。",
+      "options": [
+        "古典经典",
+        "红色经典",
+        "精英文化的大众化",
+        "民间文化的大众化"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "B",
+          "D"
+        ],
+        "answerKeyText": "ABD",
+        "answerIndex": [
+          0,
+          1,
+          3
+        ],
+        "answerText": "古典经典",
+        "bestAnswer": [
+          "古典经典",
+          "红色经典",
+          "民间文化的大众化"
+        ],
+        "allAnswer": [
+          [
+            "古典经典",
+            "红色经典",
+            "民间文化的大众化"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "张艺谋的《菊豆》对中国古代儒家伦理对人性的压抑进行了反思。()",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "最早具有类型电影特点的中国电影是（）。",
+      "options": [
+        "陈凯歌民族电影",
+        "王家卫文艺电影",
+        "张艺谋农民电影",
+        "冯式贺岁电影"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "冯式贺岁电影",
+        "bestAnswer": [
+          "冯式贺岁电影"
+        ],
+        "allAnswer": [
+          [
+            "冯式贺岁电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）表现出了“在弱肉强食、生存竞争的规则下顽强生存”的精神。",
+      "options": [
+        "《阿甘正传》",
+        "《公民凯恩》",
+        "《淘金记》",
+        "《乱世佳人》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《淘金记》",
+        "bestAnswer": [
+          "《淘金记》"
+        ],
+        "allAnswer": [
+          [
+            "《淘金记》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "在大众文化时代，电影的文化认同功能中，以美育代替宗教的功能越来越弱。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "关于王家卫电影风格，下列说法错误的是（）。",
+      "options": [
+        "电影人物符号化",
+        "电影镜头以静态为主",
+        "电影视觉感官印象化、感性抒情",
+        "电影画面扭曲变形且夸张"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "电影镜头以静态为主",
+        "bestAnswer": [
+          "电影镜头以静态为主"
+        ],
+        "allAnswer": [
+          [
+            "电影镜头以静态为主"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "随着时代发展，中国电影已经不再承担塑造、传达国家形象，弘扬、再现民族文化和传统的功能。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "王家卫很多电影都非常后现代化，表现了现代人的心灵痛苦。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《建国大业》，下列说法错误的是（）。",
+      "options": [
+        "呈现了比较开放的历史观",
+        "故事情节不连贯，历史PPT化",
+        "情节跌宕起伏，充满悬念",
+        "它采用了历史偶像化的手法"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "情节跌宕起伏，充满悬念",
+        "bestAnswer": [
+          "情节跌宕起伏，充满悬念"
+        ],
+        "allAnswer": [
+          [
+            "情节跌宕起伏，充满悬念"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "冯小刚和王朔早期的电影作品主要集中于塑造（）的形象。",
+      "options": [
+        "大都市白领",
+        "民族英雄",
+        "城市普通市民",
+        "乡村农民"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "城市普通市民",
+        "bestAnswer": [
+          "城市普通市民"
+        ],
+        "allAnswer": [
+          [
+            "城市普通市民"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《集结号》《唐山大地震》体现出个人与国家在某些影像中达成和解统一的趋势。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于电影作者论，下列说法中错误的是（）。",
+      "options": [
+        "它认为电影创作中最重要的角色是导演",
+        "这一观点在美国好莱坞得以发扬和壮大",
+        "巴赞、特吕弗提倡这一观点",
+        "它跟欧洲艺术电影的传统密切相关"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "这一观点在美国好莱坞得以发扬和壮大",
+        "bestAnswer": [
+          "这一观点在美国好莱坞得以发扬和壮大"
+        ],
+        "allAnswer": [
+          [
+            "这一观点在美国好莱坞得以发扬和壮大"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于中国第五代导演的电影题材，下列说法中错误的是（）。",
+      "options": [
+        "展现小人物闪了、美好的一面。",
+        "蕴含尖锐的文化反思和批判意向。",
+        "偏重农村，中华文化的发源地。",
+        "弘扬少数民族强悍的盛敏丽，反思黄土地的僵化。"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "展现小人物闪了、美好的一面。",
+        "bestAnswer": [
+          "展现小人物闪了、美好的一面。"
+        ],
+        "allAnswer": [
+          [
+            "展现小人物闪了、美好的一面。"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "中国第六代导演更加强调尊重个体的权利。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不属于意大利现实主义风格的电影作品。",
+      "options": [
+        "《罗马——不设防的城市》",
+        "《罗马11点》",
+        "《小鞋子》",
+        "《偷自行车的人》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《小鞋子》",
+        "bestAnswer": [
+          "《小鞋子》"
+        ],
+        "allAnswer": [
+          [
+            "《小鞋子》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不属于姜文充满个人风格性作品。",
+      "options": [
+        "《太阳照常升起》",
+        "《有话好好说》",
+        "《让子弹飞》",
+        "《阳光灿烂的日子》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "《有话好好说》",
+        "bestAnswer": [
+          "《有话好好说》"
+        ],
+        "allAnswer": [
+          [
+            "《有话好好说》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是纪实主义电影美学的源头。",
+      "options": [
+        "格里尔逊",
+        "英国布莱顿学派",
+        "格里菲斯",
+        "卢米埃尔兄弟"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "卢米埃尔兄弟",
+        "bestAnswer": [
+          "卢米埃尔兄弟"
+        ],
+        "allAnswer": [
+          [
+            "卢米埃尔兄弟"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "伊朗新电影指的是70年代的纪实电影。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [],
+        "answerKeyText": "",
+        "answerIndex": [],
+        "answerText": "",
+        "bestAnswer": [],
+        "allAnswer": [
+          []
+        ]
+      }
+    },
+    {
+      "question": "伊朗的新电影简单朴素，其对象对视儿童和女性，采用了重复策略。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《超人》《公民凯恩》《巴顿将军》所使用的原型是（）。",
+      "options": [
+        "康迪德",
+        "俄耳浦斯",
+        "浮士德",
+        "阿喀琉斯"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "阿喀琉斯",
+        "bestAnswer": [
+          "阿喀琉斯"
+        ],
+        "allAnswer": [
+          [
+            "阿喀琉斯"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "类型电影是大众化的文化消费品，具有（）。",
+      "options": [
+        "自身文化意义的惯例系统",
+        "统一的质量评判标准",
+        "固定的制作流程和规范",
+        "固定的市场营销规则"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "自身文化意义的惯例系统",
+        "bestAnswer": [
+          "自身文化意义的惯例系统"
+        ],
+        "allAnswer": [
+          [
+            "自身文化意义的惯例系统"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）是戏剧化的电影美学最集中、做到最好的代表。",
+      "options": [
+        "中国样板戏电影",
+        "香港类型电影",
+        "欧洲艺术电影",
+        "经典好莱坞电影"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "经典好莱坞电影",
+        "bestAnswer": [
+          "经典好莱坞电影"
+        ],
+        "allAnswer": [
+          [
+            "经典好莱坞电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "弗洛伊德的心理学理论不适合于分析类型电影。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不是现代主义电影。",
+      "options": [
+        "《苏州河》",
+        "《月蚀》",
+        "《周渔的火车》",
+        "《小武》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "《小武》",
+        "bestAnswer": [
+          "《小武》"
+        ],
+        "allAnswer": [
+          [
+            "《小武》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "现代主义电影美学包括先锋电影、德国表现主义电影、法国新浪潮电影和（）等。",
+      "options": [
+        "无厘头电影",
+        "纪实电影",
+        "欧洲艺术电影",
+        "美国类型电影"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "欧洲艺术电影",
+        "bestAnswer": [
+          "欧洲艺术电影"
+        ],
+        "allAnswer": [
+          [
+            "欧洲艺术电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）不是德国表现主义电影。",
+      "options": [
+        "《机器的舞蹈》",
+        "《吸血鬼》",
+        "《对角线交响曲》",
+        "《一条安达鲁狗》"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "A",
+          "C",
+          "D"
+        ],
+        "answerKeyText": "ACD",
+        "answerIndex": [
+          0,
+          2,
+          3
+        ],
+        "answerText": "《机器的舞蹈》",
+        "bestAnswer": [
+          "《机器的舞蹈》",
+          "《对角线交响曲》",
+          "《一条安达鲁狗》"
+        ],
+        "allAnswer": [
+          [
+            "《机器的舞蹈》",
+            "《对角线交响曲》",
+            "《一条安达鲁狗》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "法国的表现主义电影在电影语言方面进行了革新，用大量心理化语言，通过电影手段表现心理。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "先锋电影是用一种极简的、夸张的、抽象的、风格化的电影语言来表现深刻的东西。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "现代主义电影的特点是（）。",
+      "options": [
+        "尊重现实时空的合理性",
+        "尊重现实的完整性",
+        "尊重现实逻辑意义上的合理性",
+        "尊重主观的表达"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "尊重主观的表达",
+        "bestAnswer": [
+          "尊重主观的表达"
+        ],
+        "allAnswer": [
+          [
+            "尊重主观的表达"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "现代主义电影强调（）。",
+      "options": [
+        "主体性",
+        "剧情冲突",
+        "文化反思",
+        "民族性"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "主体性",
+        "bestAnswer": [
+          "主体性"
+        ],
+        "allAnswer": [
+          [
+            "主体性"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "中国第五代导演之所以不能算是严格意义上的现代主义，主要是因为（）。",
+      "options": [
+        "他们的电影没有一种个体的焦虑",
+        "他们的电影缺乏自我分裂",
+        "他们的电影纪实风格为主",
+        "他们的电影剧情结局清晰"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "A"
+        ],
+        "answerKeyText": "A",
+        "answerIndex": [
+          0
+        ],
+        "answerText": "他们的电影没有一种个体的焦虑",
+        "bestAnswer": [
+          "他们的电影没有一种个体的焦虑"
+        ],
+        "allAnswer": [
+          [
+            "他们的电影没有一种个体的焦虑"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "现代主义电影影像风格上更加迷茫而飘忽，把潜意识、梦幻影像化。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "（）属于“现代主义电影的美国化”类型的电影。",
+      "options": [
+        "《低俗小说》",
+        "《飞跃疯人院》",
+        "《穆赫兰道》",
+        "《雌雄大盗》"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "《穆赫兰道》",
+        "bestAnswer": [
+          "《穆赫兰道》"
+        ],
+        "allAnswer": [
+          [
+            "《穆赫兰道》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "关于《广岛之恋》，下列说法错误的是（）。",
+      "options": [
+        "它具有喃喃自语梦幻般的感觉",
+        "电影中含有对个体人性的探讨",
+        "电影主题是爱情至上",
+        "影片开头处核爆炸粉尘与肉体的转换充满梦幻感"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "C"
+        ],
+        "answerKeyText": "C",
+        "answerIndex": [
+          2
+        ],
+        "answerText": "电影主题是爱情至上",
+        "bestAnswer": [
+          "电影主题是爱情至上"
+        ],
+        "allAnswer": [
+          [
+            "电影主题是爱情至上"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "现代主义电影关注内心，关注自我如何寻找到完整性。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "下列电影中，具有后现代主义风格的是（）。",
+      "options": [
+        "《低俗小说》",
+        "《雌雄大盗》",
+        "《飞越疯人院》",
+        "以上都对"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "D"
+        ],
+        "answerKeyText": "D",
+        "answerIndex": [
+          3
+        ],
+        "answerText": "以上都对",
+        "bestAnswer": [
+          "以上都对"
+        ],
+        "allAnswer": [
+          [
+            "以上都对"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "不属于后现代主义艺术范畴的是（）。",
+      "options": [
+        "戏剧中的荒诞派",
+        "电影里的欧洲艺术电影",
+        "小说中的垮掉派",
+        "音乐中的无调性音乐"
+      ],
+      "type": 0,
+      "answer": {
+        "answerKey": [
+          "B"
+        ],
+        "answerKeyText": "B",
+        "answerIndex": [
+          1
+        ],
+        "answerText": "电影里的欧洲艺术电影",
+        "bestAnswer": [
+          "电影里的欧洲艺术电影"
+        ],
+        "allAnswer": [
+          [
+            "电影里的欧洲艺术电影"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "含有后现代主义风格的电影有（）。",
+      "options": [
+        "《黄土地》",
+        "《大话西游》",
+        "《燕尾蝶》",
+        "《厨师 大盗和她的情人》"
+      ],
+      "type": 1,
+      "answer": {
+        "answerKey": [
+          "B",
+          "C",
+          "D"
+        ],
+        "answerKeyText": "BCD",
+        "answerIndex": [
+          1,
+          2,
+          3
+        ],
+        "answerText": "《大话西游》",
+        "bestAnswer": [
+          "《大话西游》",
+          "《燕尾蝶》",
+          "《厨师 大盗和她的情人》"
+        ],
+        "allAnswer": [
+          [
+            "《大话西游》",
+            "《燕尾蝶》",
+            "《厨师 大盗和她的情人》"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "后现代主义风格电影的一个明显的特征就是表演很夸张。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    },
+    {
+      "question": "《天生杀人狂》的主题有对大众媒体的批评，也有对国家机器的批评和讽刺。（）",
+      "options": [],
+      "type": 2,
+      "answer": {
+        "answerKey": [
+          "√"
+        ],
+        "answerKeyText": "√",
+        "answerIndex": [],
+        "answerText": "正确",
+        "bestAnswer": [
+          "正确"
+        ],
+        "allAnswer": [
+          [
+            "正确"
+          ]
+        ]
+      }
+    }
+  ]
+}
