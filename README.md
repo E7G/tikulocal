@@ -2,6 +2,7 @@
 
 一个基于Rust和Axum开发的本地题库管理系统，支持题目查询、导入和管理功能。
 
+
 ## 功能特性
 
 - 📄 **题目查询**: 支持多种题型的题目查询
@@ -15,6 +16,14 @@
 - **后端**: Rust + Axum + SQLx
 - **数据库**: SQLite
 - **前端**: HTML + CSS + JavaScript (原生)
+
+## 项目结构
+
+详细的项目结构说明请参考: [docs/项目结构说明.md](docs/项目结构说明.md)
+
+## 开发指南
+
+开发指南请参考: [docs/开发指南.md](docs/开发指南.md)
 
 ## 快速开始
 
@@ -42,7 +51,7 @@ cargo run
 ### 搜索题目
 
 ```http
-POST /adapter-service/search?use=local
+POST /adapter-service/search
 Content-Type: application/json
 
 {
@@ -60,7 +69,7 @@ Content-Type: application/json
 ### 创建题目
 
 ```http
-POST /questions
+POST /api/questions
 Content-Type: application/json
 
 {
@@ -81,7 +90,7 @@ Content-Type: application/json
 ### 导入题目
 
 ```http
-POST /questions/import
+POST /api/import
 Content-Type: application/json
 
 {
@@ -106,19 +115,19 @@ Content-Type: application/json
 ### 获取所有题目
 
 ```http
-GET /questions
+GET /api/questions
 ```
 
 ### 删除题目
 
 ```http
-DELETE /questions/{id}
+DELETE /api/questions/{id}
 ```
 
 ### 清空所有题目
 
 ```http
-POST /questions/clear
+DELETE /api/questions
 ```
 
 ## 题型说明
@@ -166,7 +175,7 @@ POST /questions/clear
 
 ## 数据库
 
-应用使用SQLite数据库存储题目数据，数据库文件为 `tiku.db`，会在首次运行时自动创建。
+应用使用SQLite数据库存储题目数据，数据库文件为 `questions.db`，会在首次运行时自动创建。
 
 ## 许可证
 
