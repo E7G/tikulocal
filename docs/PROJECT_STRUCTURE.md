@@ -31,7 +31,11 @@ tikulocal/
 │   ├── 📄 test_cards.md         # 卡片显示测试
 │   ├── 📄 test_drag_drop.md     # 拖放功能测试
 │   └── 📄 test_font.md          # 字体功能测试
-└── 📁 test_embedded_font/       # 字体测试目录
+├── 📁 test/                     # 测试文件目录
+│   ├── 📄 run_tests.bat         # Windows测试运行脚本
+│   ├── 📄 test_parser.go        # 解析器功能测试
+│   └── 📄 verify_fix.go         # 解析器修复验证测试
+├── 📁 test_embedded_font/       # 字体测试目录
 ```
 
 ## 📋 文件说明
@@ -62,6 +66,9 @@ tikulocal/
 
 | 文件 | 说明 | 测试内容 |
 |------|------|----------|
+| `test/verify_fix.go` | 解析器修复验证测试 | 验证选项解析和答案显示修复效果 |
+| `test/test_parser.go` | 解析器功能测试 | 测试解析器核心功能 |
+| `test/run_tests.bat` | Windows测试运行脚本 | 一键运行所有测试 |
 | `docs/test_cards.md` | 卡片显示测试 | 界面显示功能 |
 | `docs/test_drag_drop.md` | 拖放功能测试 | 文件拖放功能 |
 | `docs/test_font.md` | 字体功能测试 | 中文字体显示 |
@@ -132,7 +139,13 @@ Web API → 外部系统调用
 3. 添加测试用例
 4. 更新 `CHANGELOG.md`
 
-### 2. 文档维护
+### 2. 测试验证
+1. 在 `test/` 目录添加测试用例
+2. 运行测试验证功能正确性
+3. 检查测试结果和输出
+4. 更新测试文档
+
+### 3. 文档维护
 1. 更新 `README.md` 主文档
 2. 在 `docs/` 目录添加详细说明
 3. 更新 `docs/README.md` 索引
@@ -178,4 +191,4 @@ Web API → 外部系统调用
 - [主项目README](../README.md)
 - [开发文档索引](README.md)
 - [API接口文档](API.md)
-- [变更日志](../CHANGELOG.md) 
+- [变更日志](../CHANGELOG.md)

@@ -32,18 +32,18 @@ var embeddedFonts embed.FS
 // 常量定义
 const (
 	// 应用配置
-	AppName    = "com.tikulocal.app"
-	WindowTitle = "题库管理系统"
-	WindowWidth = 1000
+	AppName      = "com.tikulocal.app"
+	WindowTitle  = "题库管理系统"
+	WindowWidth  = 1000
 	WindowHeight = 700
-	
+
 	// 分页配置
 	DefaultItemsPerPage = 5
 	MaxQueryLength      = 100
-	
+
 	// Web服务配置
 	WebPort = ":8060"
-	
+
 	// 数据库配置
 	DBName = "tiku.db"
 )
@@ -52,16 +52,16 @@ const (
 var (
 	// 数据库连接
 	db *gorm.DB
-	
+
 	// GUI组件
-	guiApp        fyne.App
-	guiWindow     fyne.Window
-	statusLabel   *widget.Label
-	progressBar   *widget.ProgressBar
+	guiApp          fyne.App
+	guiWindow       fyne.Window
+	statusLabel     *widget.Label
+	progressBar     *widget.ProgressBar
 	resultContainer *fyne.Container
-	resultScroll  *container.Scroll
-	statsLabel    *widget.Label
-	
+	resultScroll    *container.Scroll
+	statsLabel      *widget.Label
+
 	// 分页相关
 	currentPage    = 1
 	itemsPerPage   = DefaultItemsPerPage
@@ -70,7 +70,7 @@ var (
 	nextPageBtn    *widget.Button
 	jumpPageEntry  *widget.Entry
 	jumpPageBtn    *widget.Button
-	
+
 	// 题目分块正则（支持题号和题型）- 兼容Go语法
 	questionBlockPattern = regexp.MustCompile(`(?m)^\d+．\s*\n?【[^】]+】`)
 	// 选项正则 - 兼容Go语法
@@ -100,7 +100,7 @@ func (t *customTheme) Font(style fyne.TextStyle) fyne.Resource {
 	} else {
 		log.Printf("读取嵌入字体失败: %v", err)
 	}
-	
+
 	// 如果嵌入字体失败，尝试加载本地字体文件
 	fontPath := "fonts/NotoSansCJKsc-Regular.otf"
 	if _, err := os.Stat(fontPath); err == nil {
@@ -113,15 +113,15 @@ func (t *customTheme) Font(style fyne.TextStyle) fyne.Resource {
 	} else {
 		log.Printf("本地字体文件不存在: %s", fontPath)
 	}
-	
+
 	// 如果本地字体不存在，尝试使用系统字体
 	systemFonts := []string{
-		"C:/Windows/Fonts/msyh.ttc",      // 微软雅黑
-		"C:/Windows/Fonts/simsun.ttc",    // 宋体
-		"C:/Windows/Fonts/simhei.ttf",    // 黑体
-		"C:/Windows/Fonts/simkai.ttf",    // 楷体
+		"C:/Windows/Fonts/msyh.ttc",   // 微软雅黑
+		"C:/Windows/Fonts/simsun.ttc", // 宋体
+		"C:/Windows/Fonts/simhei.ttf", // 黑体
+		"C:/Windows/Fonts/simkai.ttf", // 楷体
 	}
-	
+
 	for _, fontPath := range systemFonts {
 		if _, err := os.Stat(fontPath); err == nil {
 			if font, err := fyne.LoadResourceFromPath(fontPath); err == nil {
@@ -132,7 +132,7 @@ func (t *customTheme) Font(style fyne.TextStyle) fyne.Resource {
 			}
 		}
 	}
-	
+
 	// 如果都失败，返回默认字体
 	log.Printf("使用Fyne默认字体")
 	return t.Theme.Font(style)
@@ -171,34 +171,25 @@ func updateStats() {
 	if db == nil || statsLabel == nil {
 		return
 	}
-	
+
 	var count int64
 	if err := db.Model(&Question{}).Count(&count).Error; err != nil {
 		log.Printf("获取题目总数失败: %v", err)
 		return
 	}
-	
+
 	typeCount := getQuestionCountByType()
 	var stats strings.Builder
 	stats.WriteString(fmt.Sprintf("📊 总题目数: %d", count))
-	
+
 	if len(typeCount) > 0 {
 		stats.WriteString(" | 题型分布: ")
 		for t, c := range typeCount {
 			stats.WriteString(fmt.Sprintf("%s:%d ", t, c))
 		}
 	}
-	
-	statsLabel.SetText(stats.String())
-}
 
-// 定义题目结构体
-type Question struct {
-	gorm.Model
-	Type    string   `gorm:"index"`
-	Text    string   `gorm:"index;unique"`
-	Options []string `gorm:"type:text;serializer:json"`
-	Answer  []string `gorm:"type:text;serializer:json"`
+	statsLabel.SetText(stats.String())
 }
 
 // 清洗题目文本，去除标点和空格
@@ -223,10 +214,10 @@ func searchQuestionsPaginated(query string, page, limit int) ([]Question, error)
 	if page < 1 || limit < 1 {
 		return nil, fmt.Errorf("无效的分页参数: page=%d, limit=%d", page, limit)
 	}
-	
+
 	var results []Question
 	queryDB := db
-	
+
 	// 如果有查询条件，添加WHERE子句
 	if query != "" {
 		cleanedQuery := cleanText(query)
@@ -235,12 +226,12 @@ func searchQuestionsPaginated(query string, page, limit int) ([]Question, error)
 		}
 		queryDB = db.Where("text LIKE ?", "%"+cleanedQuery+"%")
 	}
-	
+
 	offset := (page - 1) * limit
 	if err := queryDB.Offset(offset).Limit(limit).Find(&results).Error; err != nil {
 		return nil, fmt.Errorf("查询题目失败: %w", err)
 	}
-	
+
 	return results, nil
 }
 
@@ -249,13 +240,13 @@ func getQuestionCountByType() map[string]int {
 	if db == nil {
 		return nil
 	}
-	
+
 	// 使用原生SQL查询提高性能
 	var results []struct {
 		Type  string `gorm:"column:type"`
 		Count int    `gorm:"column:count"`
 	}
-	
+
 	if err := db.Raw(`
 		SELECT type, COUNT(*) as count 
 		FROM questions 
@@ -265,12 +256,12 @@ func getQuestionCountByType() map[string]int {
 		log.Printf("获取题型统计失败: %v", err)
 		return nil
 	}
-	
+
 	countMap := make(map[string]int)
 	for _, result := range results {
 		countMap[result.Type] = result.Count
 	}
-	
+
 	return countMap
 }
 
@@ -301,14 +292,14 @@ func showAllQuestions() {
 		showError("数据库未初始化", fmt.Errorf("数据库连接为空"))
 		return
 	}
-	
+
 	// 获取题目数据
 	results, err := searchQuestionsPaginated("", currentPage, itemsPerPage)
 	if err != nil {
 		showError("查询所有题目失败", err)
 		return
 	}
-	
+
 	// 获取总题目数
 	var count int64
 	if err := db.Model(&Question{}).Count(&count).Error; err != nil {
@@ -316,33 +307,33 @@ func showAllQuestions() {
 		return
 	}
 	totalQuestions = int(count)
-	
+
 	// 计算总页数并验证当前页
 	totalPages := (totalQuestions + itemsPerPage - 1) / itemsPerPage
 	if totalPages == 0 {
 		totalPages = 1
 	}
-	
+
 	// 确保当前页在有效范围内
 	if currentPage < 1 {
 		currentPage = 1
 	} else if currentPage > totalPages {
 		currentPage = totalPages
 	}
-	
+
 	// 生成卡片式显示内容
 	if resultContainer != nil {
 		cards := generateQuestionsCards(results, totalQuestions, currentPage, totalPages, "📚 题库总览")
 		resultContainer.Objects = cards
 		resultContainer.Refresh()
-		
+
 		// 自动回顶到顶部
 		scrollToTop()
 	}
-	
-	showSuccess(fmt.Sprintf("查询完成! 共找到 %d 道题目，当前第 %d 页，总页数 %d", 
+
+	showSuccess(fmt.Sprintf("查询完成! 共找到 %d 道题目，当前第 %d 页，总页数 %d",
 		totalQuestions, currentPage, totalPages))
-	
+
 	// 更新分页按钮状态
 	updatePaginationButtons()
 }
@@ -397,7 +388,7 @@ func createQuestionCard(q Question, questionNum int, typeIcon string) *fyne.Cont
 		questionContent.Add(container.NewVBox(optionObjs...))
 	}
 	questionContent.Add(container.NewHBox(ansLabel, ans))
-	
+
 	// 美化：卡片背景（背景色+内边距，兼容暗色主题）
 	bg := canvas.NewRectangle(theme.InputBackgroundColor())
 	card := container.NewMax(
@@ -410,14 +401,14 @@ func createQuestionCard(q Question, questionNum int, typeIcon string) *fyne.Cont
 // 生成题目卡片内容
 func generateQuestionsCards(questions []Question, total, currentPage, totalPages int, title string) []fyne.CanvasObject {
 	var cards []fyne.CanvasObject
-	
+
 	// 标题和统计信息 - 使用更醒目的样式
 	// titleLabel := widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	// titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	
+
 	// stats := widget.NewLabel(fmt.Sprintf("📊 统计: 共 %d 道题目 | 📄 第 %d/%d 页", total, currentPage, totalPages))
 	// stats.TextStyle = fyne.TextStyle{Italic: true}
-	
+
 	// // 添加标题区域
 	// headerCard := container.NewVBox(
 	// 	titleLabel,
@@ -425,15 +416,15 @@ func generateQuestionsCards(questions []Question, total, currentPage, totalPages
 	// 	widget.NewSeparator(),
 	// )
 	// cards = append(cards, headerCard)
-	
+
 	for i, q := range questions {
 		questionNum := (currentPage-1)*itemsPerPage + i + 1
 		typeIcon := getTypeIcon(q.Type)
-		
+
 		// 创建题目卡片容器
 		questionCard := createQuestionCard(q, questionNum, typeIcon)
 		cards = append(cards, questionCard)
-		
+
 		// 在题目之间添加分隔线（除了最后一个）
 		if i < len(questions)-1 {
 			// 使用更明显的分隔线
@@ -441,21 +432,21 @@ func generateQuestionsCards(questions []Question, total, currentPage, totalPages
 			cards = append(cards, separator)
 		}
 	}
-	
+
 	return cards
 }
 
 // 生成文件解析预览卡片
 func generatePreviewCards(questions []Question) []fyne.CanvasObject {
 	var cards []fyne.CanvasObject
-	
+
 	// 标题和统计信息 - 使用更醒目的样式
 	titleLabel := widget.NewLabelWithStyle("🎉 成功解析题目预览", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	
+
 	stats := widget.NewLabel(fmt.Sprintf("📊 共解析 %d 道题目（显示前5题预览）", len(questions)))
 	stats.TextStyle = fyne.TextStyle{Italic: true}
-	
+
 	// 添加标题区域
 	headerCard := container.NewVBox(
 		titleLabel,
@@ -463,28 +454,28 @@ func generatePreviewCards(questions []Question) []fyne.CanvasObject {
 		widget.NewSeparator(),
 	)
 	cards = append(cards, headerCard)
-	
+
 	// 只显示前5题作为预览
 	previewCount := 5
 	if len(questions) < previewCount {
 		previewCount = len(questions)
 	}
-	
+
 	for i := 0; i < previewCount; i++ {
 		q := questions[i]
 		typeIcon := getTypeIcon(q.Type)
-		
+
 		// 创建题目卡片
 		questionCard := createQuestionCard(q, i+1, typeIcon)
 		cards = append(cards, questionCard)
-		
+
 		// 在题目之间添加分隔线（除了最后一个）
 		if i < previewCount-1 {
 			separator := widget.NewSeparator()
 			cards = append(cards, separator)
 		}
 	}
-	
+
 	// 如果有更多题目，显示提示
 	if len(questions) > previewCount {
 		moreSeparator := widget.NewSeparator()
@@ -492,7 +483,7 @@ func generatePreviewCards(questions []Question) []fyne.CanvasObject {
 		moreLabel.TextStyle = fyne.TextStyle{Italic: true}
 		cards = append(cards, moreSeparator, moreLabel)
 	}
-	
+
 	return cards
 }
 
@@ -518,12 +509,12 @@ func getTypeIcon(questionType string) string {
 func formatQuestionText(text string) string {
 	// 清理多余的空白字符
 	text = strings.TrimSpace(text)
-	
+
 	// 如果文本太长，进行换行处理
 	if len([]rune(text)) > 80 {
 		return autoWrapText(text, 80)
 	}
-	
+
 	return text
 }
 
@@ -535,7 +526,7 @@ func updatePaginationButtons() {
 			prevPageBtn.Enable()
 		}
 	}
-	
+
 	if nextPageBtn != nil {
 		nextPageBtn.Disable()
 		if currentPage*itemsPerPage < totalQuestions {
@@ -566,39 +557,39 @@ func jumpToPage() {
 	if jumpPageEntry == nil {
 		return
 	}
-	
+
 	pageStr := jumpPageEntry.Text
 	if pageStr == "" {
 		dialog.ShowError(fmt.Errorf("请输入页码"), guiWindow)
 		return
 	}
-	
+
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("请输入有效的页码"), guiWindow)
 		return
 	}
-	
+
 	totalPages := (totalQuestions + itemsPerPage - 1) / itemsPerPage
 	if totalPages == 0 {
 		totalPages = 1
 	}
-	
+
 	if page < 1 || page > totalPages {
 		dialog.ShowError(fmt.Errorf("页码超出范围，总页数为 %d", totalPages), guiWindow)
 		return
 	}
-	
+
 	currentPage = page
 	showAllQuestions()
 }
 
 func setupGUI() {
 	guiApp = app.NewWithID(AppName)
-	
+
 	// 应用自定义主题以支持中文字体
 	guiApp.Settings().SetTheme(newCustomTheme())
-	
+
 	guiWindow = guiApp.NewWindow(WindowTitle)
 	guiWindow.Resize(fyne.NewSize(WindowWidth, WindowHeight))
 
@@ -678,7 +669,7 @@ func setupGUI() {
 				resultContainer.Objects = previewCards
 				resultContainer.Refresh()
 			}
-			
+
 			showSuccess(fmt.Sprintf("解析完成! 共添加 %d 道题目", len(questions)))
 
 			// 保存到数据库
@@ -749,11 +740,11 @@ func setupGUI() {
 				searchCards := generateQuestionsCards(results, totalQuestions, currentPage, totalPages, "🔍 搜索结果")
 				resultContainer.Objects = searchCards
 				resultContainer.Refresh()
-				
+
 				// 自动回顶到顶部
 				scrollToTop()
 			}
-			
+
 			showSuccess(fmt.Sprintf("搜索完成! 共找到 %d 条结果，当前第 %d 页，总页数 %d", totalQuestions, currentPage, totalPages))
 
 			// 更新分页按钮状态
@@ -794,19 +785,19 @@ func setupGUI() {
 	addBtn := widget.NewButton("➕ 添加题目", func() {
 		showAddQuestionDialog()
 	})
-	
+
 	editBtn := widget.NewButton("✏️ 编辑题目", func() {
 		showEditQuestionDialog()
 	})
-	
+
 	deleteBtn := widget.NewButton("🗑️ 删除题目", func() {
 		showDeleteQuestionDialog()
 	})
-	
+
 	clearAllBtn := widget.NewButton("💥 清空题库", func() {
 		showClearAllDialog()
 	})
-	
+
 	refreshBtn := widget.NewButton("🔄 刷新", func() {
 		showAllQuestions()
 		updateStats()
@@ -832,10 +823,10 @@ func setupGUI() {
 
 	// 文件操作区域
 	fileRow := container.NewBorder(nil, nil, fileBtn, parseBtn, filePathEntry)
-	
+
 	// 搜索区域
 	searchRow := container.NewBorder(nil, nil, nil, searchBtn, searchEntry)
-	
+
 	// 顶部区域
 	topSection := container.NewVBox(
 		// title,
@@ -869,7 +860,7 @@ func setupGUI() {
 
 	// 启动时显示所有题目
 	showAllQuestions()
-	
+
 	// 更新统计信息
 	updateStats()
 
@@ -882,22 +873,22 @@ func saveQuestionsToDB(questions []Question) error {
 	if len(questions) == 0 {
 		return fmt.Errorf("没有题目需要保存")
 	}
-	
+
 	tx := db.Begin()
 	if tx.Error != nil {
 		return fmt.Errorf("开始事务失败: %w", tx.Error)
 	}
-	
+
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
 			log.Printf("事务回滚: %v", r)
 		}
 	}()
-	
+
 	savedCount := 0
 	skippedCount := 0
-	
+
 	for _, q := range questions {
 		// 清洗题目文本
 		cleanedText := cleanText(q.Text)
@@ -905,7 +896,7 @@ func saveQuestionsToDB(questions []Question) error {
 			skippedCount++
 			continue
 		}
-		
+
 		// 检查题目是否已存在（排除已软删除的记录）
 		var existing Question
 		if err := db.Unscoped().Where("text = ?", cleanedText).First(&existing).Error; err == nil {
@@ -917,7 +908,7 @@ func saveQuestionsToDB(questions []Question) error {
 				existing.Options = q.Options
 				existing.Answer = q.Answer
 				existing.DeletedAt = gorm.DeletedAt{} // 清除软删除标记
-				
+
 				if err := tx.Unscoped().Save(&existing).Error; err != nil {
 					tx.Rollback()
 					return fmt.Errorf("恢复题目失败: %w", err)
@@ -929,7 +920,7 @@ func saveQuestionsToDB(questions []Question) error {
 			}
 			continue
 		}
-		
+
 		// 保存新题目
 		q.Text = cleanedText
 		if err := tx.Create(&q).Error; err != nil {
@@ -938,11 +929,11 @@ func saveQuestionsToDB(questions []Question) error {
 		}
 		savedCount++
 	}
-	
+
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("提交事务失败: %w", err)
 	}
-	
+
 	log.Printf("保存完成: 新增 %d 道题目, 跳过 %d 道重复题目", savedCount, skippedCount)
 	return nil
 }
@@ -952,10 +943,10 @@ func searchQuestions(query string) ([]Question, error) {
 	if db == nil {
 		return nil, fmt.Errorf("数据库未初始化")
 	}
-	
+
 	var results []Question
 	queryDB := db
-	
+
 	// 如果有查询条件，添加WHERE子句
 	if query != "" {
 		cleanedQuery := cleanText(query)
@@ -964,11 +955,11 @@ func searchQuestions(query string) ([]Question, error) {
 		}
 		queryDB = db.Where("text LIKE ?", "%"+cleanedQuery+"%")
 	}
-	
+
 	if err := queryDB.Find(&results).Error; err != nil {
 		return nil, fmt.Errorf("搜索题目失败: %w", err)
 	}
-	
+
 	return results, nil
 }
 
@@ -983,29 +974,29 @@ func main() {
 	// 设置日志格式
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("启动题库管理系统...")
-	
+
 	// 初始化数据库
 	if err := initDB(); err != nil {
 		log.Fatalf("初始化数据库失败: %v", err)
 	}
 	log.Println("数据库初始化成功")
-	
+
 	// 初始化必要的资源
 	if err := initResources(); err != nil {
 		log.Fatalf("初始化资源失败: %v", err)
 	}
-	
+
 	// 设置GUI
 	setupGUI()
 	log.Println("GUI初始化成功")
-	
+
 	// 启动Web服务
 	go func() {
 		if err := startWebService(); err != nil {
 			log.Printf("Web服务启动失败: %v", err)
 		}
 	}()
-	
+
 	// 运行GUI主循环
 	log.Println("启动GUI主循环...")
 	guiApp.Run()
@@ -1016,7 +1007,7 @@ func main() {
 func startWebService() error {
 	// 初始化WEB服务
 	r := gin.Default()
-	
+
 	// 配置404处理
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -1024,19 +1015,19 @@ func startWebService() error {
 			"path":  c.Request.URL.Path,
 		})
 	})
-	
+
 	// 配置CORS中间件
 	setupCORS(r)
-	
+
 	// 注册路由
 	setupRoutes(r)
-	
+
 	// 启动服务
 	log.Printf("Web服务将在端口 %s 启动", WebPort)
 	if err := r.Run(WebPort); err != nil {
 		return fmt.Errorf("启动Web服务失败: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -1044,7 +1035,7 @@ func startWebService() error {
 func setupRoutes(r *gin.Engine) {
 	// 搜索接口
 	r.POST("/adapter-service/search", handleSearch)
-	
+
 	// 健康检查接口
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -1053,7 +1044,7 @@ func setupRoutes(r *gin.Engine) {
 			"docs":    "/adapter-service/search",
 		})
 	})
-	
+
 	r.HEAD("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "running",
@@ -1061,7 +1052,7 @@ func setupRoutes(r *gin.Engine) {
 			"docs":    "/adapter-service/search",
 		})
 	})
-	
+
 	// 处理OPTIONS请求
 	r.OPTIONS("/*any", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
@@ -1079,43 +1070,43 @@ func setupCORS(r *gin.Engine) {
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Accept"}
 	config.AllowCredentials = true
 	config.MaxAge = 12 * 60 * 60 // 12小时
-	
+
 	r.Use(cors.New(config))
 }
 
 // 加载DOCX文件并解析题目 - 优化版本
 func loadDocx(path string) ([]Question, error) {
 	log.Printf("开始加载DOCX文件: %s", path)
-	
+
 	// 读取DOCX文件(ZIP格式)
 	r, err := zip.OpenReader(path)
 	if err != nil {
 		return nil, fmt.Errorf("无法打开DOCX文件: %w", err)
 	}
 	defer r.Close()
-	
+
 	// 查找document.xml
 	xmlFile, err := findXMLFile(r)
 	if err != nil {
 		return nil, fmt.Errorf("找不到document.xml文件: %w", err)
 	}
-	
+
 	// 读取XML内容
 	content, err := readXMLContent(xmlFile)
 	if err != nil {
 		return nil, fmt.Errorf("读取XML文件内容失败: %w", err)
 	}
-	
+
 	// 提取所有文本内容
 	text := extractTextFromXML(content)
 	log.Printf("提取的文本内容长度: %d", len(text))
-	
+
 	// 解析题目
-	questions, err := parseQuestions(text)
+	questions, err := ParseQuestions(text)
 	if err != nil {
 		return nil, fmt.Errorf("解析题目失败: %w", err)
 	}
-	
+
 	log.Printf("成功解析 %d 道题目", len(questions))
 	return questions, nil
 }
@@ -1137,12 +1128,12 @@ func readXMLContent(xmlFile *zip.File) (string, error) {
 		return "", fmt.Errorf("打开XML文件失败: %w", err)
 	}
 	defer rc.Close()
-	
+
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(rc); err != nil {
 		return "", fmt.Errorf("读取XML内容失败: %w", err)
 	}
-	
+
 	return buf.String(), nil
 }
 
@@ -1208,8 +1199,8 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 		qType = strings.TrimSpace(typeMatch[1])
 	}
 
-	// 提取题干（题型后到第一个选项前的内容）
-	stemRe := regexp.MustCompile(`【[^】]+】([\s\S]*?)A、`)
+	// 提取题干（题型后到"选项："前的内容）
+	stemRe := regexp.MustCompile(`【[^】]+】([\s\S]*?)选项：`)
 	stemMatch := stemRe.FindStringSubmatch(block)
 	stem := ""
 	if len(stemMatch) > 1 {
@@ -1218,7 +1209,30 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 		stem = strings.ReplaceAll(stem, "（ ）", "")
 	}
 
-	// 对于判断题，题干可能在"正确答案"之前
+	// 如果没有找到"选项："，尝试使用A、作为分隔符
+	if stem == "" {
+		stemRe := regexp.MustCompile(`【[^】]+】([\s\S]*?)A、`)
+		stemMatch := stemRe.FindStringSubmatch(block)
+		if len(stemMatch) > 1 {
+			stem = strings.TrimSpace(stemMatch[1])
+			stem = strings.ReplaceAll(stem, "( )", "")
+			stem = strings.ReplaceAll(stem, "（ ）", "")
+		}
+	}
+
+	// 对于判断题，题干可能在"我的答案"之前
+	if stem == "" && strings.Contains(block, "我的答案") {
+		// 尝试从题型后到"我的答案"前提取题干
+		judgeRe := regexp.MustCompile(`【[^】]+】([\s\S]*?)我的答案`)
+		judgeMatch := judgeRe.FindStringSubmatch(block)
+		if len(judgeMatch) > 1 {
+			stem = strings.TrimSpace(judgeMatch[1])
+			stem = strings.ReplaceAll(stem, "( )", "")
+			stem = strings.ReplaceAll(stem, "（ ）", "")
+		}
+	}
+
+	// 对于判断题，如果还是没有找到题干，尝试在"正确答案"之前
 	if stem == "" && strings.Contains(block, "正确答案") {
 		// 尝试从题型后到"正确答案"前提取题干
 		judgeRe := regexp.MustCompile(`【[^】]+】([\s\S]*?)正确答案`)
@@ -1230,13 +1244,13 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 		}
 	}
 
-	// 提取选项（A-Z）- 完全重写版本
+	// 提取选项（A-Z）- 改进版本
 	options := []string{}
-	
+
 	// 方法1：使用正则表达式精确提取选项
-	optionRe := regexp.MustCompile(`([A-Z])、([^A-Z]*?)(?:\n[A-Z]、|\n正确答案|\n$|$)`)
+	optionRe := regexp.MustCompile(`([A-Z])、([^A-Z]*?)(?:\n[A-Z]、|\n正确答案|\n我的答案|\n答案状态|\n得分|\n$|$)`)
 	optionMatches := optionRe.FindAllStringSubmatch(block, -1)
-	
+
 	for _, match := range optionMatches {
 		if len(match) > 2 {
 			opt := strings.TrimSpace(match[2])
@@ -1245,21 +1259,24 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 			}
 		}
 	}
-	
+
 	// 方法2：如果正则表达式方法失败，使用字符串分割方法
 	if len(options) == 0 {
 		// 先找到"正确答案"的位置，用于确定选项的结束边界
 		ansIndex := strings.Index(block, "正确答案")
 		if ansIndex == -1 {
+			ansIndex = strings.Index(block, "我的答案")
+		}
+		if ansIndex == -1 {
 			ansIndex = len(block)
 		}
-		
-		// 提取选项部分（从A、开始到"正确答案"之前）
+
+		// 提取选项部分（从A、开始到"正确答案"或"我的答案"之前）
 		optionSection := block
 		if ansIndex > 0 {
 			optionSection = block[:ansIndex]
 		}
-		
+
 		// 按选项标记分割
 		for _, letter := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 			marker := string(letter) + "、"
@@ -1267,7 +1284,7 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 				parts := strings.Split(optionSection, marker)
 				if len(parts) > 1 {
 					optionPart := parts[1]
-					
+
 					// 找到下一个选项的位置
 					nextPos := len(optionPart)
 					for _, nextLetter := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
@@ -1278,7 +1295,7 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 							}
 						}
 					}
-					
+
 					// 提取选项内容
 					if nextPos > 0 && nextPos <= len(optionPart) {
 						opt := strings.TrimSpace(optionPart[:nextPos])
@@ -1290,28 +1307,28 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 			}
 		}
 	}
-	
+
 	// 方法3：如果还是失败，使用字符遍历方法
 	if len(options) == 0 {
 		runes := []rune(block)
 		optionPositions := []int{}
-		
+
 		// 找到所有选项的位置
 		for i := 0; i < len(runes)-1; i++ {
 			if runes[i] >= 'A' && runes[i] <= 'Z' && runes[i+1] == '、' {
 				optionPositions = append(optionPositions, i)
 			}
 		}
-		
+
 		// 提取每个选项的内容
 		for i, pos := range optionPositions {
 			start := pos + 2 // 跳过"X、"部分
 			if start >= len(runes) {
 				continue
 			}
-			
+
 			end := len(runes)
-			
+
 			// 找到下一个选项的位置
 			if i+1 < len(optionPositions) {
 				nextPos := optionPositions[i+1]
@@ -1319,13 +1336,16 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 					end = nextPos
 				}
 			} else {
-				// 最后一个选项，找到"正确答案"的位置
+				// 最后一个选项，找到"正确答案"或"我的答案"的位置
 				ansIndex := strings.Index(block, "正确答案")
+				if ansIndex == -1 {
+					ansIndex = strings.Index(block, "我的答案")
+				}
 				if ansIndex > start && ansIndex < len(block) {
 					end = ansIndex
 				}
 			}
-			
+
 			// 确保边界安全
 			if end > start && end <= len(runes) {
 				opt := strings.TrimSpace(string(runes[start:end]))
@@ -1335,14 +1355,14 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 			}
 		}
 	}
-	
+
 	// 最终清理：确保选项不包含"正确答案"部分和其他选项
 	for i, opt := range options {
 		// 移除"正确答案"部分
 		if ansIdx := strings.Index(opt, "正确答案"); ansIdx > 0 {
 			options[i] = strings.TrimSpace(opt[:ansIdx])
 		}
-		
+
 		// 移除其他选项标记
 		for _, letter := range "ABCDEFGHIJKLMNOPQRSTUVWXYZ" {
 			marker := string(letter) + "、"
@@ -1350,16 +1370,18 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 				options[i] = strings.TrimSpace(options[i][:idx])
 			}
 		}
-		
+
 		// 清理换行符和多余空格
 		options[i] = strings.ReplaceAll(options[i], "\n", " ")
 		options[i] = strings.TrimSpace(options[i])
 	}
 
-	// 提取答案
+	// 提取答案 - 改进版本，优先使用"正确答案："，没有的话再使用"我的答案："
+	answers := []string{}
+
+	// 首先尝试提取"正确答案："
 	ansRe := regexp.MustCompile(`正确答案[：:]*\s*([A-Z对错]+)`)
 	ansMatch := ansRe.FindStringSubmatch(block)
-	answers := []string{}
 	if len(ansMatch) > 1 {
 		for _, ch := range ansMatch[1] {
 			if ch >= 'A' && ch <= 'Z' {
@@ -1369,6 +1391,24 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 				}
 			} else if ch == '对' || ch == '错' {
 				answers = append(answers, string(ch))
+			}
+		}
+	}
+
+	// 如果没有找到"正确答案："，尝试提取"我的答案："
+	if len(answers) == 0 {
+		myAnsRe := regexp.MustCompile(`我的答案[：:]*\s*([A-Z对错]+)`)
+		myAnsMatch := myAnsRe.FindStringSubmatch(block)
+		if len(myAnsMatch) > 1 {
+			for _, ch := range myAnsMatch[1] {
+				if ch >= 'A' && ch <= 'Z' {
+					idx := int(ch - 'A')
+					if idx >= 0 && idx < len(options) {
+						answers = append(answers, options[idx])
+					}
+				} else if ch == '对' || ch == '错' {
+					answers = append(answers, string(ch))
+				}
 			}
 		}
 	}
@@ -1386,67 +1426,105 @@ func parseSingleQuestionBlock(block string) (Question, error) {
 	}, nil
 }
 
-// 从XML内容中提取文本 - 优化版本
+// 从XML内容中提取文本 - 优化版本，支持分行还原
 func extractTextFromXML(xmlContent string) string {
 	var textBuilder strings.Builder
-	
-	// 使用更简单的正则表达式方法提取文本
-	// 匹配所有<w:t>标签中的内容
-	textRe := regexp.MustCompile(`<w:t[^>]*>([^<]*)</w:t>`)
-	matches := textRe.FindAllStringSubmatch(xmlContent, -1)
-	
-	for _, match := range matches {
-		if len(match) > 1 {
-			text := match[1]
-			// 解码XML实体
-			text = strings.ReplaceAll(text, "&amp;", "&")
-			text = strings.ReplaceAll(text, "&lt;", "<")
-			text = strings.ReplaceAll(text, "&gt;", ">")
-			text = strings.ReplaceAll(text, "&quot;", "\"")
-			text = strings.ReplaceAll(text, "&#39;", "'")
-			textBuilder.WriteString(text)
+	var lastWasText bool
+
+	// 使用XML解析器来更好地处理文档结构
+	d := xml.NewDecoder(bytes.NewReader([]byte(xmlContent)))
+	for {
+		t, err := d.Token()
+		if err != nil || t == nil {
+			break
+		}
+
+		switch se := t.(type) {
+		case xml.StartElement:
+			switch se.Name.Local {
+			case "p": // 段落开始
+				// 如果不是第一个段落，添加换行符
+				if textBuilder.Len() > 0 {
+					textBuilder.WriteString("\n")
+				}
+			case "br": // 换行标签
+				textBuilder.WriteString("\n")
+			case "t": // 文本标签
+				var tText string
+				if err := d.DecodeElement(&tText, &se); err == nil {
+					// 解码XML实体
+					tText = strings.ReplaceAll(tText, "&amp;", "&")
+					tText = strings.ReplaceAll(tText, "&lt;", "<")
+					tText = strings.ReplaceAll(tText, "&gt;", ">")
+					tText = strings.ReplaceAll(tText, "&quot;", "\"")
+					tText = strings.ReplaceAll(tText, "&#39;", "'")
+
+					textBuilder.WriteString(tText)
+					lastWasText = true
+				}
+			}
+		case xml.EndElement:
+			if se.Name.Local == "p" {
+				// 段落结束后添加换行符
+				if textBuilder.Len() > 0 && lastWasText {
+					textBuilder.WriteString("\n")
+				}
+			}
 		}
 	}
-	
-	// 如果正则表达式方法失败，使用XML解析器
+
+	// 如果XML解析器没有提取到内容，尝试使用正则表达式方法
 	if textBuilder.Len() == 0 {
-		d := xml.NewDecoder(bytes.NewReader([]byte(xmlContent)))
-		for {
-			t, err := d.Token()
-			if err != nil || t == nil {
-				break
-			}
-			// 段落或换行标签加换行符
-			if se, ok := t.(xml.StartElement); ok {
-				if se.Name.Local == "p" || se.Name.Local == "br" {
-					textBuilder.WriteRune('\n')
-				}
-				if se.Name.Local == "t" {
-					var tText string
-					if err := d.DecodeElement(&tText, &se); err == nil {
-						textBuilder.WriteString(tText)
-					}
+		textRe := regexp.MustCompile(`<w:t[^>]*>([^<]*)</w:t>`)
+		matches := textRe.FindAllStringSubmatch(xmlContent, -1)
+
+		// 同时查找段落标签以确定换行位置
+		paragraphRe := regexp.MustCompile(`</w:p>`)
+		paragraphMatches := paragraphRe.FindAllStringIndex(xmlContent, -1)
+		paragraphIndex := 0
+
+		for _, match := range matches {
+			if len(match) > 1 {
+				text := match[1]
+				// 解码XML实体
+				text = strings.ReplaceAll(text, "&amp;", "&")
+				text = strings.ReplaceAll(text, "&lt;", "<")
+				text = strings.ReplaceAll(text, "&gt;", ">")
+				text = strings.ReplaceAll(text, "&quot;", "\"")
+				text = strings.ReplaceAll(text, "&#39;", "'")
+
+				textBuilder.WriteString(text)
+
+				// 检查是否应该在当前位置添加换行符
+				for paragraphIndex < len(paragraphMatches) &&
+					paragraphMatches[paragraphIndex][0] < strings.Index(xmlContent, match[0]) {
+					textBuilder.WriteString("\n")
+					paragraphIndex++
 				}
 			}
 		}
 	}
-	
+
 	result := textBuilder.String()
-	
-	// 清理和规范化文本
+
+	// 清理和规范化文本，但保留有意义的换行
 	result = strings.ReplaceAll(result, "\r\n", "\n")
 	result = strings.ReplaceAll(result, "\r", "\n")
-	
-	// 移除多余的空格和换行
+
+	// 移除多余的连续空行，但保留单个换行符
 	lines := strings.Split(result, "\n")
 	var cleanedLines []string
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			cleanedLines = append(cleanedLines, line)
+		// 保留空行，但只保留一个
+		if line == "" {
+			if len(cleanedLines) == 0 || cleanedLines[len(cleanedLines)-1] != "" {
+				cleanedLines = append(cleanedLines, line)
+			}
+		} else {
+			cleanedLines = append(cleanedLines, strings.TrimSpace(line))
 		}
 	}
-	
+
 	return strings.Join(cleanedLines, "\n")
 }
 
@@ -1458,28 +1536,28 @@ func handleSearch(c *gin.Context) {
 		Options  []string `json:"options"`
 		Type     int      `json:"type" binding:"min=0,max=4"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("无效的请求格式: %v", err),
 		})
 		return
 	}
-	
+
 	// 验证请求参数
 	if request.Question == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "题目内容不能为空"})
 		return
 	}
-	
+
 	// 清理查询文本
 	cleanedQuery := cleanText(request.Question)
 	if len([]rune(cleanedQuery)) > MaxQueryLength {
 		cleanedQuery = string([]rune(cleanedQuery)[:MaxQueryLength])
 	}
-	
+
 	log.Printf("API请求: 题型:%d 题目:%s", request.Type, cleanedQuery)
-	
+
 	// 查询数据库
 	results, err := searchQuestions(cleanedQuery)
 	if err != nil {
@@ -1487,16 +1565,16 @@ func handleSearch(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库查询失败"})
 		return
 	}
-	
+
 	// 处理查询结果
 	if len(results) == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "未找到相关问题"})
 		return
 	}
-	
+
 	// 构建响应
 	response := buildSearchResponse(results[0], request.Options, request.Type)
-	
+
 	log.Printf("API请求处理完成 题型:%d 匹配答案:%v", request.Type, results[0].Answer)
 	c.JSON(http.StatusOK, response)
 }
@@ -1506,7 +1584,7 @@ func buildSearchResponse(question Question, options []string, questionType int) 
 	answerKey := []string{}
 	answerIndex := []int{}
 	answerText := []string{}
-	
+
 	// 匹配选项和答案
 	for i, option := range options {
 		for _, ans := range question.Answer {
@@ -1517,7 +1595,7 @@ func buildSearchResponse(question Question, options []string, questionType int) 
 			}
 		}
 	}
-	
+
 	// 如果没有匹配到选项，使用原始答案
 	if len(answerKey) == 0 {
 		answerKey = question.Answer
@@ -1527,13 +1605,13 @@ func buildSearchResponse(question Question, options []string, questionType int) 
 		}
 		answerText = question.Answer
 	}
-	
+
 	// 生成格式化答案
 	formattedAnswers := generateFormattedAnswers(question.Answer, options)
 	if len(formattedAnswers) == 0 {
 		formattedAnswers = question.Answer
 	}
-	
+
 	return gin.H{
 		"plat":     0,
 		"question": question.Text,
@@ -1558,7 +1636,7 @@ func generateFormattedAnswers(answers []string, options []string) []string {
 	if len(answers) == 0 || len(options) == 0 {
 		return answers
 	}
-	
+
 	formatted := make([]string, 0, len(answers))
 	for _, ans := range answers {
 		for i, opt := range options {
@@ -1568,7 +1646,7 @@ func generateFormattedAnswers(answers []string, options []string) []string {
 			}
 		}
 	}
-	
+
 	return formatted
 }
 
@@ -1577,18 +1655,18 @@ func isValidDocxFile(filePath string) bool {
 	if filePath == "" {
 		return false
 	}
-	
+
 	// 检查文件扩展名
 	ext := strings.ToLower(getFileExtension(filePath))
 	if ext != ".docx" {
 		return false
 	}
-	
+
 	// 检查文件是否存在
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -1616,10 +1694,10 @@ func setupDropZone(entry *widget.Entry, window fyne.Window) {
 			// 获取第一个拖放的文件URI
 			uri := uris[0]
 			filePath := uri.Path()
-			
+
 			// 处理文件路径
 			filePath = cleanDropPath(filePath)
-			
+
 			if isValidDocxFile(filePath) {
 				entry.SetText(filePath)
 				showSuccess("文件已拖放: " + getFileName(filePath))
@@ -1628,13 +1706,13 @@ func setupDropZone(entry *widget.Entry, window fyne.Window) {
 			}
 		}
 	})
-	
+
 	// 保留OnSubmitted事件作为备用
 	entry.OnSubmitted = func(path string) {
 		if path != "" {
 			// 处理Windows拖放的文件路径格式
 			path = cleanDropPath(path)
-			
+
 			if isValidDocxFile(path) {
 				entry.SetText(path)
 				showSuccess("文件已拖放: " + getFileName(path))
@@ -1649,10 +1727,10 @@ func setupDropZone(entry *widget.Entry, window fyne.Window) {
 func cleanDropPath(path string) string {
 	// 移除可能的引号
 	path = strings.Trim(path, `"'`)
-	
+
 	// 处理Windows路径分隔符
 	path = strings.ReplaceAll(path, "\\", string(os.PathSeparator))
-	
+
 	return path
 }
 
@@ -1663,16 +1741,16 @@ func showAddQuestionDialog() {
 	// 题型选择
 	typeSelect := widget.NewSelect([]string{"单选题", "多选题", "判断题", "填空题", "简答题"}, nil)
 	typeSelect.SetSelected("单选题")
-	
+
 	// 题干输入
 	questionEntry := widget.NewMultiLineEntry()
 	questionEntry.SetPlaceHolder("请输入题目内容...")
 	questionEntry.Wrapping = fyne.TextWrapWord
-	
+
 	// 选项输入区域
 	optionsContainer := container.NewVBox()
 	var optionEntries []*widget.Entry
-	
+
 	// 添加选项的函数
 	addOption := func() {
 		optionEntry := widget.NewEntry()
@@ -1684,7 +1762,7 @@ func showAddQuestionDialog() {
 		))
 		optionsContainer.Refresh()
 	}
-	
+
 	// 移除选项的函数
 	removeOption := func() {
 		if len(optionEntries) > 0 {
@@ -1693,22 +1771,22 @@ func showAddQuestionDialog() {
 			optionsContainer.Refresh()
 		}
 	}
-	
+
 	// 选项管理按钮
 	optionButtons := container.NewHBox(
 		widget.NewButton("➕ 添加选项", addOption),
 		widget.NewButton("➖ 移除选项", removeOption),
 	)
-	
+
 	// 答案输入
 	answerEntry := widget.NewEntry()
 	answerEntry.SetPlaceHolder("请输入答案（如：A 或 A,B 或 对/错）")
-	
+
 	// 初始添加4个选项
 	for i := 0; i < 4; i++ {
 		addOption()
 	}
-	
+
 	// 创建表单
 	form := &widget.Form{
 		Items: []*widget.FormItem{
@@ -1718,7 +1796,7 @@ func showAddQuestionDialog() {
 			{Text: "答案", Widget: answerEntry, HintText: "输入正确答案"},
 		},
 	}
-	
+
 	// 显示对话框
 	dialog.ShowForm("添加题目", "确定", "取消", form.Items, func(confirm bool) {
 		if confirm {
@@ -1727,12 +1805,12 @@ func showAddQuestionDialog() {
 				dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
 				return
 			}
-			
+
 			if answerEntry.Text == "" {
 				dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
 				return
 			}
-			
+
 			// 收集选项
 			var options []string
 			for _, entry := range optionEntries {
@@ -1740,11 +1818,11 @@ func showAddQuestionDialog() {
 					options = append(options, strings.TrimSpace(entry.Text))
 				}
 			}
-			
+
 			// 处理答案
 			var answers []string
 			answerText := strings.TrimSpace(answerEntry.Text)
-			
+
 			// 如果是字母答案（A、B、C、D等）
 			if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
 				for _, ch := range answerText {
@@ -1759,7 +1837,7 @@ func showAddQuestionDialog() {
 				// 直接使用答案文本
 				answers = []string{answerText}
 			}
-			
+
 			// 创建题目
 			question := Question{
 				Type:    typeSelect.Selected,
@@ -1767,15 +1845,15 @@ func showAddQuestionDialog() {
 				Options: options,
 				Answer:  answers,
 			}
-			
+
 			// 保存到数据库
 			if err := db.Create(&question).Error; err != nil {
 				dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
 				return
 			}
-			
+
 			dialog.ShowInformation("成功", "题目添加成功！", guiWindow)
-			
+
 			// 刷新显示
 			showAllQuestions()
 			updateStats()
@@ -1791,12 +1869,12 @@ func showEditQuestionDialog() {
 		dialog.ShowError(fmt.Errorf("获取题目失败: %v", err), guiWindow)
 		return
 	}
-	
+
 	if len(results) == 0 {
 		dialog.ShowError(fmt.Errorf("当前页面没有题目"), guiWindow)
 		return
 	}
-	
+
 	// 创建题目选择列表
 	var questionItems []string
 	for i, q := range results {
@@ -1807,45 +1885,45 @@ func showEditQuestionDialog() {
 		}
 		questionItems = append(questionItems, fmt.Sprintf("%d. %s", questionNum, preview))
 	}
-	
+
 	questionSelect := widget.NewSelect(questionItems, nil)
 	if len(questionItems) > 0 {
 		questionSelect.SetSelected(questionItems[0])
 	}
-	
+
 	// 选择题目后显示编辑表单
 	questionSelect.OnChanged = func(selected string) {
 		if selected == "" {
 			return
 		}
-		
+
 		// 解析选中的题目索引
 		parts := strings.Split(selected, ". ")
 		if len(parts) < 2 {
 			return
 		}
-		
+
 		index, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return
 		}
-		
+
 		// 获取对应的题目
 		questionIndex := index - 1 - (currentPage-1)*itemsPerPage
 		if questionIndex < 0 || questionIndex >= len(results) {
 			return
 		}
-		
+
 		question := results[questionIndex]
 		showEditQuestionForm(question)
 	}
-	
+
 	// 显示选择对话框
 	content := container.NewVBox(
 		widget.NewLabel("请选择要编辑的题目："),
 		questionSelect,
 	)
-	
+
 	dialog.ShowCustom("选择题目", "关闭", content, guiWindow)
 }
 
@@ -1854,16 +1932,16 @@ func showEditQuestionForm(question Question) {
 	// 题型选择
 	typeSelect := widget.NewSelect([]string{"单选题", "多选题", "判断题", "填空题", "简答题"}, nil)
 	typeSelect.SetSelected(question.Type)
-	
+
 	// 题干输入
 	questionEntry := widget.NewMultiLineEntry()
 	questionEntry.SetText(question.Text)
 	questionEntry.Wrapping = fyne.TextWrapWord
-	
+
 	// 选项输入区域
 	optionsContainer := container.NewVBox()
 	var optionEntries []*widget.Entry
-	
+
 	// 添加选项的函数
 	addOption := func() {
 		optionEntry := widget.NewEntry()
@@ -1875,7 +1953,7 @@ func showEditQuestionForm(question Question) {
 		))
 		optionsContainer.Refresh()
 	}
-	
+
 	// 移除选项的函数
 	removeOption := func() {
 		if len(optionEntries) > 0 {
@@ -1884,13 +1962,13 @@ func showEditQuestionForm(question Question) {
 			optionsContainer.Refresh()
 		}
 	}
-	
+
 	// 选项管理按钮
 	optionButtons := container.NewHBox(
 		widget.NewButton("➕ 添加选项", addOption),
 		widget.NewButton("➖ 移除选项", removeOption),
 	)
-	
+
 	// 加载现有选项
 	for i, opt := range question.Options {
 		addOption()
@@ -1898,11 +1976,11 @@ func showEditQuestionForm(question Question) {
 			optionEntries[i].SetText(opt)
 		}
 	}
-	
+
 	// 答案输入
 	answerEntry := widget.NewEntry()
 	answerEntry.SetText(strings.Join(question.Answer, ", "))
-	
+
 	// 创建表单
 	form := &widget.Form{
 		Items: []*widget.FormItem{
@@ -1912,7 +1990,7 @@ func showEditQuestionForm(question Question) {
 			{Text: "答案", Widget: answerEntry, HintText: "输入正确答案"},
 		},
 	}
-	
+
 	// 显示对话框
 	dialog.ShowForm("编辑题目", "确定", "取消", form.Items, func(confirm bool) {
 		if confirm {
@@ -1921,12 +1999,12 @@ func showEditQuestionForm(question Question) {
 				dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
 				return
 			}
-			
+
 			if answerEntry.Text == "" {
 				dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
 				return
 			}
-			
+
 			// 收集选项
 			var options []string
 			for _, entry := range optionEntries {
@@ -1934,11 +2012,11 @@ func showEditQuestionForm(question Question) {
 					options = append(options, strings.TrimSpace(entry.Text))
 				}
 			}
-			
+
 			// 处理答案
 			var answers []string
 			answerText := strings.TrimSpace(answerEntry.Text)
-			
+
 			// 如果是字母答案（A、B、C、D等）
 			if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
 				for _, ch := range answerText {
@@ -1953,21 +2031,21 @@ func showEditQuestionForm(question Question) {
 				// 直接使用答案文本
 				answers = []string{answerText}
 			}
-			
+
 			// 更新题目
 			question.Type = typeSelect.Selected
 			question.Text = cleanText(questionEntry.Text)
 			question.Options = options
 			question.Answer = answers
-			
+
 			// 保存到数据库
 			if err := db.Save(&question).Error; err != nil {
 				dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
 				return
 			}
-			
+
 			dialog.ShowInformation("成功", "题目更新成功！", guiWindow)
-			
+
 			// 刷新显示
 			showAllQuestions()
 			updateStats()
@@ -1983,12 +2061,12 @@ func showDeleteQuestionDialog() {
 		dialog.ShowError(fmt.Errorf("获取题目失败: %v", err), guiWindow)
 		return
 	}
-	
+
 	if len(results) == 0 {
 		dialog.ShowError(fmt.Errorf("当前页面没有题目"), guiWindow)
 		return
 	}
-	
+
 	// 创建题目选择列表
 	var questionItems []string
 	for i, q := range results {
@@ -1999,55 +2077,55 @@ func showDeleteQuestionDialog() {
 		}
 		questionItems = append(questionItems, fmt.Sprintf("%d. %s", questionNum, preview))
 	}
-	
+
 	questionSelect := widget.NewSelect(questionItems, nil)
 	if len(questionItems) > 0 {
 		questionSelect.SetSelected(questionItems[0])
 	}
-	
+
 	// 删除类型选择
 	deleteTypeSelect := widget.NewSelect([]string{"软删除（可恢复）", "硬删除（不可恢复）"}, nil)
 	deleteTypeSelect.SetSelected("软删除（可恢复）")
-	
+
 	// 删除确认函数
 	confirmDelete := func() {
 		if questionSelect.Selected == "" {
 			return
 		}
-		
+
 		// 解析选中的题目索引
 		parts := strings.Split(questionSelect.Selected, ". ")
 		if len(parts) < 2 {
 			return
 		}
-		
+
 		index, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return
 		}
-		
+
 		// 获取对应的题目
 		questionIndex := index - 1 - (currentPage-1)*itemsPerPage
 		if questionIndex < 0 || questionIndex >= len(results) {
 			return
 		}
-		
+
 		question := results[questionIndex]
-		
+
 		// 确认删除
 		deleteType := "软删除"
 		if deleteTypeSelect.Selected == "硬删除（不可恢复）" {
 			deleteType = "硬删除"
 		}
-		
-		dialog.ShowConfirm("确认删除", 
-			fmt.Sprintf("确定要%s这道题目吗？\n\n题干：%s\n\n%s", 
-				deleteType, question.Text, 
-				deleteTypeSelect.Selected), 
+
+		dialog.ShowConfirm("确认删除",
+			fmt.Sprintf("确定要%s这道题目吗？\n\n题干：%s\n\n%s",
+				deleteType, question.Text,
+				deleteTypeSelect.Selected),
 			func(confirm bool) {
 				if confirm {
 					var err error
-					
+
 					// 根据选择执行不同类型的删除
 					if deleteTypeSelect.Selected == "硬删除（不可恢复）" {
 						// 硬删除
@@ -2056,21 +2134,21 @@ func showDeleteQuestionDialog() {
 						// 软删除
 						err = db.Delete(&question).Error
 					}
-					
+
 					if err != nil {
 						dialog.ShowError(fmt.Errorf("删除失败: %v", err), guiWindow)
 						return
 					}
-					
+
 					dialog.ShowInformation("成功", fmt.Sprintf("题目%s成功！", deleteType), guiWindow)
-					
+
 					// 刷新显示
 					showAllQuestions()
 					updateStats()
 				}
 			}, guiWindow)
 	}
-	
+
 	// 显示选择对话框
 	content := container.NewVBox(
 		widget.NewLabel("请选择要删除的题目："),
@@ -2079,7 +2157,7 @@ func showDeleteQuestionDialog() {
 		deleteTypeSelect,
 		widget.NewButton("删除选中题目", confirmDelete),
 	)
-	
+
 	dialog.ShowCustom("选择题目", "关闭", content, guiWindow)
 }
 
@@ -2088,14 +2166,14 @@ func showClearAllDialog() {
 	// 删除类型选择
 	deleteTypeSelect := widget.NewSelect([]string{"软删除（可恢复）", "硬删除（不可恢复）"}, nil)
 	deleteTypeSelect.SetSelected("软删除（可恢复）")
-	
+
 	content := container.NewVBox(
 		widget.NewLabel("⚠️ 警告：此操作将删除题库中的所有题目！"),
 		widget.NewLabel("删除类型："),
 		deleteTypeSelect,
 		widget.NewLabel("此操作不可恢复，确定要继续吗？"),
 	)
-	
+
 	dialog.ShowCustomConfirm("确认清空", "确定", "取消", content, func(confirm bool) {
 		if confirm {
 			// 再次确认
@@ -2103,13 +2181,13 @@ func showClearAllDialog() {
 			if deleteTypeSelect.Selected == "硬删除（不可恢复）" {
 				deleteType = "硬删除"
 			}
-			
-			dialog.ShowConfirm("最终确认", 
-				fmt.Sprintf("🚨 最终警告：即将%s所有题目！\n\n请输入 'DELETE' 确认：", deleteType), 
+
+			dialog.ShowConfirm("最终确认",
+				fmt.Sprintf("🚨 最终警告：即将%s所有题目！\n\n请输入 'DELETE' 确认：", deleteType),
 				func(finalConfirm bool) {
 					if finalConfirm {
 						var err error
-						
+
 						// 根据选择执行不同类型的删除
 						if deleteTypeSelect.Selected == "硬删除（不可恢复）" {
 							// 硬删除
@@ -2118,14 +2196,14 @@ func showClearAllDialog() {
 							// 软删除
 							err = db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&Question{}).Error
 						}
-						
+
 						if err != nil {
 							dialog.ShowError(fmt.Errorf("清空失败: %v", err), guiWindow)
 							return
 						}
-						
+
 						dialog.ShowInformation("成功", fmt.Sprintf("题库已%s！", deleteType), guiWindow)
-						
+
 						// 刷新显示
 						showAllQuestions()
 						updateStats()
@@ -2134,5 +2212,3 @@ func showClearAllDialog() {
 		}
 	}, guiWindow)
 }
-
-
