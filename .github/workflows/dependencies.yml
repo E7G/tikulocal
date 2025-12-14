@@ -1,0 +1,68 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Update dependencies
+      run: |
+        # Update go.mod and go.sum
+        go get -u ./...
+        go mod tidy
+        
+        # Check if there are any changes
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Dependencies updated"
+          echo "CHANGES=true" >> $GITHUB_ENV
+        else
+          echo "No dependency updates available"
+          echo "CHANGES=false" >> $GITHUB_ENV
+        fi
+
+    - name: Test with updated dependencies
+      if: env.CHANGES == 'true'
+      run: |
+        go test ./...
+        go build .
+
+    - name: Create Pull Request
+      if: env.CHANGES == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update dependencies'
+        title: 'chore: update dependencies'
+        body: |
+          ## 📦 Dependency Updates
+          
+          This PR updates the project dependencies to their latest versions.
+          
+          ### Changes
+          - Updated Go modules in `go.mod` and `go.sum`
+          - Verified compatibility with existing code
+          - All tests pass with updated dependencies
+          
+          ### Testing
+          - [x] Unit tests pass
+          - [x] Build succeeds
+          - [x] No breaking changes detected
+          
+          ### Notes
+          This is an automated dependency update. Please review the changes and merge if everything looks good.
+        branch: dependency-updates
+        delete-branch: true

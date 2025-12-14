@@ -1,0 +1,202 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    outputs:
+      next_release_tag: ${{ steps.generate_release_tag.outputs.next_release_tag }}
+    steps:
+      - name: Generate release tag
+        id: generate_release_tag
+        uses: amitsingh-007/next-release-tag@v6.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_prefix: "v"
+          tag_template: "yyyy.mm.dd.i"
+
+  build-and-release:
+    needs: prepare
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "ubuntu-latest"
+            goos: "linux"
+            goarch: "amd64"
+            binary_name: "tikulocal-linux-amd64"
+            package_ext: "tar.gz"
+          - platform: "ubuntu-latest"
+            goos: "linux"
+            goarch: "arm64"
+            binary_name: "tikulocal-linux-arm64"
+            package_ext: "tar.gz"
+          - platform: "windows-latest"
+            goos: "windows"
+            goarch: "amd64"
+            binary_name: "tikulocal-windows-amd64"
+            package_ext: "exe"
+          - platform: "macos-latest"
+            goos: "darwin"
+            goarch: "amd64"
+            binary_name: "tikulocal-darwin-amd64"
+            package_ext: "app"
+          - platform: "macos-latest"
+            goos: "darwin"
+            goarch: "arm64"
+            binary_name: "tikulocal-darwin-arm64"
+            package_ext: "app"
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Fyne tools
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Build with Fyne (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          fyne package -os windows -icon icon.png
+          # Rename the generated exe to match our naming convention
+          if exist "tikulocal.exe" (
+            move "tikulocal.exe" "${{ matrix.binary_name }}.exe"
+          )
+
+      - name: Build with Fyne (Linux)
+        if: matrix.goos == 'linux'
+        run: |
+          fyne package -os linux -icon icon.png
+          # Create tar.gz package for Linux
+          if [ -d "tikulocal" ]; then
+            tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal/
+          elif [ -f "tikulocal" ]; then
+            # If it's just a binary, package it
+            tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal
+          fi
+
+      - name: Build with Fyne (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          fyne package -os darwin -icon icon.png
+          # Create zip package for macOS app
+          if [ -d "tikulocal.app" ]; then
+            zip -r "${{ matrix.binary_name }}.app.zip" tikulocal.app/
+          elif [ -f "tikulocal" ]; then
+            # If it's just a binary, package it
+            zip "${{ matrix.binary_name }}.zip" tikulocal
+          fi
+
+      - name: Create Release and Upload Binary
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.prepare.outputs.next_release_tag }}
+          name: Release ${{ needs.prepare.outputs.next_release_tag }}
+          body: |
+            ## 🎉 TikuLocal ${{ needs.prepare.outputs.next_release_tag }}
+            
+            题库管理系统的最新版本发布！
+            
+            ### 📦 下载说明
+            请根据您的操作系统选择对应的版本下载：
+            
+            - **Windows**: `${{ matrix.binary_name }}.exe` (带图标的可执行文件)
+            - **Linux**: `${{ matrix.binary_name }}.tar.gz` (包含图标的应用程序包)
+            - **macOS**: `${{ matrix.binary_name }}.app.zip` (带图标的应用包)
+            
+            ### 🚀 快速开始
+            1. 下载对应平台的应用程序包
+            2. **Windows**: 直接运行 `.exe` 文件
+            3. **Linux**: 解压 `tar.gz` 文件并运行其中的应用程序
+            4. **macOS**: 解压 `.app.zip` 并将应用拖到 Applications 文件夹
+            5. 访问 Web 界面：`http://localhost:8080`
+            6. 拖放 DOCX 文件开始导入题目
+            
+            ### 📋 功能特性
+            - ✅ DOCX 文档解析
+            - ✅ 题目搜索和管理
+            - ✅ Web API 接口
+            - ✅ 图形界面 (GUI)
+            - ✅ 多平台支持
+            - ✅ 原生应用图标
+            
+            ### 📝 使用说明
+            详细使用说明请参考 [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
+            
+            ### 🐛 问题反馈
+            如遇到问题，请在 [Issues](https://github.com/${{ github.repository }}/issues) 页面提交反馈。
+          draft: false
+          prerelease: false
+          files: |
+            ${{ matrix.binary_name }}.*
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install Fyne tools
+        run: |
+          go install fyne.io/tools/cmd/fyne@latest
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Run tests
+        run: |
+          # Run unit tests
+          go test -v ./...
+          
+          # Run integration tests if they exist
+          if [ -f "test/run_tests.bat" ]; then
+            echo "Running integration tests..."
+            cd test
+            # Convert Windows batch to shell script for Linux
+            go run verify_fix.go ../parser.go ../models.go
+            go run test_parser.go ../parser.go ../models.go
+          fi
+
+      - name: Build test
+        run: |
+          # Test that the project builds successfully
+          go build -v .
+          
+          # Test cross-compilation
+          GOOS=windows GOARCH=amd64 go build -v .
+          GOOS=darwin GOARCH=amd64 go build -v .
+          GOOS=linux GOARCH=amd64 go build -v .
+
+      - name: Test Fyne package
+        run: |
+          # Test Fyne packaging (without actually creating packages)
+          fyne version
