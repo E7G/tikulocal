@@ -66,6 +66,28 @@ jobs:
         with:
           go-version: '1.21'
 
+      - name: Install system dependencies (Linux)
+        if: matrix.goos == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y golang gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev
+
+      - name: Install system dependencies (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          # Install MinGW-w64 for Windows builds
+          choco install mingw -y
+          # Add MinGW to PATH
+          echo "C:\ProgramData\mingw64\bin" >> $GITHUB_PATH
+
+      - name: Install system dependencies (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          # Install Xcode command line tools if not present
+          xcode-select --install || true
+          # Ensure pkg-config is available
+          brew install pkg-config || true
+
       - name: Install Fyne tools
         run: |
           go install fyne.io/tools/cmd/fyne@latest
@@ -162,6 +184,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
+
+      - name: Install system dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y golang gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev
 
       - name: Install Fyne tools
         run: |
