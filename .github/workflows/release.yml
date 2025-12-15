@@ -75,11 +75,11 @@ jobs:
           # Add MinGW to PATH
           echo "C:\ProgramData\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
-      - name: Install Docker (Windows)
-        if: matrix.goos == 'windows'
-        run: |
-          # Install Docker Desktop using Chocolatey
-          choco install docker-desktop -y
+      # - name: Install Docker (Windows)
+      #   if: matrix.goos == 'windows'
+      #   run: |
+      #     # Install Docker Desktop using Chocolatey
+      #     choco install docker-desktop -y
 
       - name: Install system dependencies (macOS)
         if: matrix.goos == 'darwin'
@@ -89,15 +89,15 @@ jobs:
           # Ensure pkg-config is available
           brew install pkg-config || true
           
-      - name: Install Docker (macOS)
-        if: matrix.goos == 'darwin'
-        run: |
-          # Install Docker Desktop using Homebrew
-          brew install --cask docker
+      # - name: Install Docker (macOS)
+      #   if: matrix.goos == 'darwin'
+      #   run: |
+      #     # Install Docker Desktop using Homebrew
+      #     brew install --cask docker
 
       - name: Install Fyne tools
         run: |
-          go install fyne.io/fyne/v2/cmd/fyne@latest
+          go install fyne.io/tools/cmd/fyne@latest
           go install github.com/fyne-io/fyne-cross@latest
 
       - name: Install dependencies
@@ -105,64 +105,21 @@ jobs:
           go mod download
           go mod tidy
 
-      - name: Build with Fyne-cross (Windows)
+      - name: Build with Fyne package (Windows)
         if: matrix.goos == 'windows'
         shell: cmd
         run: |
-          echo "Building with Fyne-cross for Windows all architectures..."
-          fyne-cross windows -arch=* -app-id com.tikulocal.app -icon icon.png
+          echo "Building with Fyne package for Windows..."
+          fyne package -os windows -icon icon.png
           
-          # Check the fyne-cross output directory structure
-          echo "Checking fyne-cross output directories:"
-          dir fyne-cross\ 2>nul || echo "fyne-cross directory not found"
-          dir fyne-cross\dist\ 2>nul || echo "fyne-cross\dist directory not found"
-          
-          # List all architecture directories
-          echo "Available architecture directories:"
-          dir fyne-cross\dist\windows-* /b 2>nul || echo "No Windows architecture directories found"
-          
-          # Process each architecture
-          for /d %%A in (fyne-cross\dist\windows-*) do (
-            set ARCH_DIR=%%A
-            echo "Processing architecture directory: !ARCH_DIR!"
-            
-            :: Extract architecture name from directory path
-            for /f "tokens=2 delims=-" %%a in ("!ARCH_DIR!") do set ARCH=%%a
-            echo "Architecture: !ARCH!"
-            
-            :: Check for executable
-            if exist "!ARCH_DIR!\tikulocal.exe" (
-              echo "Found fyne-cross executable: !ARCH_DIR!\tikulocal.exe"
-              copy "!ARCH_DIR!\tikulocal.exe" "tikulocal-windows-!ARCH!.exe"
-              dir "tikulocal-windows-!ARCH!.exe"
-            ) else if exist "!ARCH_DIR!\tikulocal.zip" (
-              echo "Found fyne-cross package: !ARCH_DIR!\tikulocal.zip"
-              
-              :: Extract the package to get the binary
-              echo "Extracting package..."
-              cd "!ARCH_DIR!"
-                powershell -command "Expand-Archive -Path 'tikulocal.zip' -DestinationPath '.' -Force"
-              cd -
-              
-              :: Look for the exe in extracted contents
-              if exist "!ARCH_DIR!\tikulocal.exe" (
-                echo "Found executable in extracted package"
-                copy "!ARCH_DIR!\tikulocal.exe" "tikulocal-windows-!ARCH!.exe"
-                dir "tikulocal-windows-!ARCH!.exe"
-              ) else (
-                echo "Executable not found in extracted package, listing contents:"
-                dir "!ARCH_DIR!\"
-                echo "Using the fyne-cross package as-is"
-                copy "!ARCH_DIR!\tikulocal.zip" "tikulocal-windows-!ARCH!.zip"
-                echo "Copied fyne-cross package as tikulocal-windows-!ARCH!.zip"
-              )
-            ) else (
-              echo "WARNING: No output found for architecture !ARCH!"
-            )
+          # Check if the executable was created
+          if exist "tikulocal.exe" (
+            echo "Found fyne package executable: tikulocal.exe"
+            copy "tikulocal.exe" "tikulocal-windows.exe"
+            dir "tikulocal-windows.exe"
+          ) else (
+            echo "ERROR: Windows executable not found!"
           )
-          
-          :: Enable delayed expansion for variables
-          setlocal enabledelayedexpansion
 
       - name: Build with Fyne-cross (Linux)
         if: matrix.goos == 'linux'
@@ -234,73 +191,20 @@ jobs:
           echo "Created files:"
           ls -la *.tar.* 2>/dev/null || echo "No tar files found"
 
-      - name: Build with Fyne-cross (macOS)
+      - name: Build with Fyne package (macOS)
         if: matrix.goos == 'darwin'
         run: |
-          echo "Building with Fyne-cross for macOS..."
-          fyne-cross darwin -arch=* -app-id com.tikulocal.app -icon icon.png
+          echo "Building with Fyne package for macOS..."
+          fyne package -os darwin -icon icon.png
           
-          # Check the fyne-cross output directory structure
-          echo "Checking fyne-cross output directories:"
-          ls -la fyne-cross/ 2>/dev/null || echo "fyne-cross directory not found"
-          ls -la fyne-cross/dist/ 2>/dev/null || echo "fyne-cross/dist directory not found"
-          
-          # List all architecture directories
-          echo "Available architecture directories:"
-          ls -la fyne-cross/dist/darwin-* 2>/dev/null || echo "No macOS architecture directories found"
-          
-          # Process each architecture
-          for ARCH_DIR in fyne-cross/dist/darwin-*; do
-            if [ -d "$ARCH_DIR" ]; then
-              # Extract architecture name from directory path
-              ARCH=$(basename "$ARCH_DIR" | cut -d'-' -f2)
-              echo "Processing architecture: $ARCH (directory: $ARCH_DIR)"
-              
-              # Look for the output package in fyne-cross/dist directory
-              if [ -f "$ARCH_DIR/tikulocal.app.zip" ]; then
-                echo "Found fyne-cross app package: $ARCH_DIR/tikulocal.app.zip"
-                cp "$ARCH_DIR/tikulocal.app.zip" "tikulocal-darwin-$ARCH.app.zip"
-                echo "Copied fyne-cross app package as tikulocal-darwin-$ARCH.app.zip"
-              elif [ -f "$ARCH_DIR/tikulocal.tar.xz" ]; then
-                echo "Found fyne-cross package: $ARCH_DIR/tikulocal.tar.xz"
-                
-                # Extract the package to get the binary/app
-                echo "Extracting package..."
-                cd "$ARCH_DIR"
-                tar -xf tikulocal.tar.xz
-                cd -
-                
-                # Look for the app bundle or binary in extracted contents
-                if [ -d "$ARCH_DIR/tikulocal.app" ]; then
-                  echo "Found app bundle in extracted package"
-                  zip -r "tikulocal-darwin-$ARCH.app.zip" "$ARCH_DIR/tikulocal.app/"
-                  echo "Created app zip from extracted bundle"
-                elif [ -f "$ARCH_DIR/tikulocal" ]; then
-                  echo "Found binary in extracted package, creating manual app package"
-                  mkdir -p "tikulocal-macos-$ARCH"
-                  cp "$ARCH_DIR/tikulocal" "tikulocal-macos-$ARCH/"
-                  cp icon.png "tikulocal-macos-$ARCH/" 2>/dev/null || echo "Icon not found, continuing without it"
-                  zip -r "tikulocal-darwin-$ARCH.app.zip" "tikulocal-macos-$ARCH/"
-                  echo "Created manual app zip"
-                else
-                  echo "Neither app bundle nor binary found in extracted package, listing contents:"
-                  ls -la "$ARCH_DIR/"
-                  echo "Using the fyne-cross package as-is"
-                  cp "$ARCH_DIR/tikulocal.tar.xz" "tikulocal-darwin-$ARCH.tar.xz"
-                  echo "Copied fyne-cross package as tikulocal-darwin-$ARCH.tar.xz"
-                fi
-              else
-                echo "WARNING: fyne-cross output not found in $ARCH_DIR"
-              fi
-            fi
-          done
-          
-          # List final files
-          ls -la
-          echo "Created files:"
-          ls -la tikulocal-darwin-*.app.zip tikulocal-darwin-*.tar.xz 2>/dev/null || echo "No macOS package files found"
-          echo "All architecture-specific files:"
-          find . -name "tikulocal-darwin-*" -type f 2>/dev/null || echo "No architecture files found"
+          # Check if the app package was created
+          if [ -d "tikulocal.app" ]; then
+            echo "Found fyne package app: tikulocal.app"
+            zip -r "tikulocal-darwin.app.zip" "tikulocal.app/"
+            echo "Created app zip: tikulocal-darwin.app.zip"
+          else
+            echo "ERROR: macOS app package not found!"
+          fi
 
 
 
