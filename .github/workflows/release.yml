@@ -74,6 +74,12 @@ jobs:
           choco install mingw -y
           # Add MinGW to PATH
           echo "C:\ProgramData\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
+      - name: Install Docker (Windows)
+        if: matrix.goos == 'windows'
+        run: |
+          # Install Docker Desktop using Chocolatey
+          choco install docker-desktop -y
 
       - name: Install system dependencies (macOS)
         if: matrix.goos == 'darwin'
@@ -82,6 +88,12 @@ jobs:
           xcode-select --install || true
           # Ensure pkg-config is available
           brew install pkg-config || true
+          
+      - name: Install Docker (macOS)
+        if: matrix.goos == 'darwin'
+        run: |
+          # Install Docker Desktop using Homebrew
+          brew install --cask docker
 
       - name: Install Fyne tools
         run: |
@@ -359,15 +371,6 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Install system dependencies (Linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y golang gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev
-
-      - name: Install Fyne tools
-        run: |
-          go install fyne.io/tools/cmd/fyne@latest
-
       - name: Install dependencies
         run: |
           go mod download
@@ -383,18 +386,3 @@ jobs:
           cp test/test_parser.go test_parser_temp.go
           go run test_parser_temp.go parser.go models.go
           rm test_parser_temp.go
-
-      # - name: Build test
-      #   run: |
-      #     # Test that the project builds successfully
-      #     go build -v .
-          
-      #     # Test cross-compilation
-      #     GOOS=windows GOARCH=amd64 go build -v .
-      #     GOOS=darwin GOARCH=amd64 go build -v .
-      #     GOOS=linux GOARCH=amd64 go build -v .
-
-      - name: Test Fyne-cross
-        run: |
-          # Test Fyne-cross installation
-          fyne-cross version
