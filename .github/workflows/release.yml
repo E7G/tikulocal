@@ -260,11 +260,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ${{ matrix.binary_name }}.*
-            *.tar.xz
-            *.app.zip
-            *.exe
-            *.zip
+            ${{ matrix.binary_name }}*.*
 
   test:
     runs-on: ubuntu-latest
