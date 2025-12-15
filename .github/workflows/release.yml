@@ -97,7 +97,7 @@ jobs:
         shell: cmd
         run: |
           echo "Building with Fyne-cross for Windows all architectures..."
-          fyne-cross windows -arch * -app-id com.tikulocal.app -icon icon.png
+          fyne-cross windows -arch=* -app-id com.tikulocal.app -icon icon.png
           
           # Check the fyne-cross output directory structure
           echo "Checking fyne-cross output directories:"
@@ -155,7 +155,7 @@ jobs:
         if: matrix.goos == 'linux'
         run: |
           echo "Building with Fyne-cross for Linux all architectures..."
-          fyne-cross linux -arch * -app-id com.tikulocal.app -icon icon.png
+          fyne-cross linux -arch=* -app-id com.tikulocal.app -icon icon.png
           
           # Check the fyne-cross output directory structure
           echo "Checking fyne-cross output directories:"
@@ -225,7 +225,7 @@ jobs:
         if: matrix.goos == 'darwin'
         run: |
           echo "Building with Fyne-cross for macOS..."
-          fyne-cross darwin -arch * -app-id com.tikulocal.app -icon icon.png
+          fyne-cross darwin -arch=* -app-id com.tikulocal.app -icon icon.png
           
           # Check the fyne-cross output directory structure
           echo "Checking fyne-cross output directories:"
