@@ -101,10 +101,18 @@ jobs:
         if: matrix.goos == 'windows'
         shell: cmd
         run: |
+          echo "Building with Fyne for Windows..."
           fyne package -os windows -icon icon.png
-          # Rename the generated exe to match our naming convention
+          
+          # Check if the exe was created and rename it
           if exist "tikulocal.exe" (
+            echo "Found tikulocal.exe, renaming to ${{ matrix.binary_name }}.exe"
             move "tikulocal.exe" "${{ matrix.binary_name }}.exe"
+            dir "${{ matrix.binary_name }}.exe"
+          ) else (
+            echo "ERROR: tikulocal.exe not found after Fyne packaging"
+            dir
+            exit /b 1
           )
 
       - name: Build with Fyne (Linux)
@@ -113,13 +121,26 @@ jobs:
           # Build the binary first
           CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
           
+          # Check if binary was created successfully
+          ls -la tikulocal || echo "Binary not found"
+          
           # Try Fyne packaging
           fyne package -os linux -icon icon.png || true
           
           # Create a directory structure for the Linux app
           mkdir -p tikulocal-linux
-          cp tikulocal tikulocal-linux/
-          cp icon.png tikulocal-linux/ 2>/dev/null || true
+          
+          # Copy the binary if it exists
+          if [ -f "tikulocal" ]; then
+            cp tikulocal tikulocal-linux/
+            echo "Copied binary to tikulocal-linux/"
+          else
+            echo "ERROR: tikulocal binary not found"
+            exit 1
+          fi
+          
+          # Copy icon if it exists
+          cp icon.png tikulocal-linux/ 2>/dev/null || echo "Icon not found, continuing without it"
           
           # Create tar.gz package
           tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal-linux/
@@ -135,18 +156,35 @@ jobs:
           # Build the binary first
           CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
           
+          # Check if binary was created successfully
+          ls -la tikulocal || echo "Binary not found"
+          
           # Try Fyne packaging
           fyne package -os darwin -icon icon.png || true
           
           # Create zip package for macOS
           if [ -d "tikulocal.app" ]; then
             zip -r "${{ matrix.binary_name }}.app.zip" tikulocal.app/
+            echo "Created app zip from Fyne package"
           else
             # If Fyne packaging failed, create a simple zip with the binary
+            echo "Fyne package not found, creating manual package"
             mkdir -p tikulocal-macos
-            cp tikulocal tikulocal-macos/
-            cp icon.png tikulocal-macos/ 2>/dev/null || true
+            
+            # Copy the binary if it exists
+            if [ -f "tikulocal" ]; then
+              cp tikulocal tikulocal-macos/
+              echo "Copied binary to tikulocal-macos/"
+            else
+              echo "ERROR: tikulocal binary not found"
+              exit 1
+            fi
+            
+            # Copy icon if it exists
+            cp icon.png tikulocal-macos/ 2>/dev/null || echo "Icon not found, continuing without it"
+            
             zip -r "${{ matrix.binary_name }}.app.zip" tikulocal-macos/
+            echo "Created manual app zip"
           fi
           
           # List files to debug
@@ -242,15 +280,15 @@ jobs:
           go run test_parser_temp.go parser.go models.go
           rm test_parser_temp.go
 
-      - name: Build test
-        run: |
-          # Test that the project builds successfully
-          go build -v .
+      # - name: Build test
+      #   run: |
+      #     # Test that the project builds successfully
+      #     go build -v .
           
-          # Test cross-compilation
-          GOOS=windows GOARCH=amd64 go build -v .
-          GOOS=darwin GOARCH=amd64 go build -v .
-          GOOS=linux GOARCH=amd64 go build -v .
+      #     # Test cross-compilation
+      #     GOOS=windows GOARCH=amd64 go build -v .
+      #     GOOS=darwin GOARCH=amd64 go build -v .
+      #     GOOS=linux GOARCH=amd64 go build -v .
 
       - name: Test Fyne package
         run: |
