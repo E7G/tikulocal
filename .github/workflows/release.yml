@@ -90,54 +90,53 @@ jobs:
 
       - name: Install Fyne tools
         run: |
-          go install fyne.io/tools/cmd/fyne@latest
+          go install github.com/fyne-io/fyne-cross@latest
 
       - name: Install dependencies
         run: |
           go mod download
           go mod tidy
 
-      - name: Build with Fyne (Windows)
+      - name: Build with Fyne-cross (Windows)
         if: matrix.goos == 'windows'
         shell: cmd
         run: |
-          echo "Building with Fyne for Windows..."
-          fyne package -os windows -icon icon.png
+          echo "Building with Fyne-cross for Windows..."
+          fyne-cross windows -arch ${{ matrix.goarch }} -app-id com.tikulocal.app -icon icon.png
           
-          # Check if the exe was created and rename it
-          if exist "tikulocal.exe" (
-            echo "Found tikulocal.exe, renaming to ${{ matrix.binary_name }}.exe"
-            move "tikulocal.exe" "${{ matrix.binary_name }}.exe"
-            dir "${{ matrix.binary_name }}.exe"
+          # Check if the exe was created and copy it
+          if exist "fyne-cross\bin\tikulocal.exe" (
+            echo "Found tikulocal.exe in fyne-cross output, copying to ${{ matrix.binary_name }}${{ matrix.package_ext }}"
+            copy "fyne-cross\bin\tikulocal.exe" "${{ matrix.binary_name }}${{ matrix.package_ext }}"
+            dir "${{ matrix.binary_name }}${{ matrix.package_ext }}"
           ) else (
-            echo "ERROR: tikulocal.exe not found after Fyne packaging"
-            dir
+            echo "ERROR: tikulocal.exe not found after Fyne-cross build"
+            dir fyne-cross\bin 2>nul || echo "fyne-cross\bin directory not found"
             exit /b 1
           )
 
-      - name: Build with Fyne (Linux)
+      - name: Build with Fyne-cross (Linux)
         if: matrix.goos == 'linux'
         run: |
-          # Build the binary first
-          CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
+          echo "Building with Fyne-cross for Linux..."
+          fyne-cross linux -arch ${{ matrix.goarch }} -app-id com.tikulocal.app -icon icon.png
           
-          # Check if binary was created successfully
-          ls -la tikulocal || echo "Binary not found"
-          
-          # Try Fyne packaging
-          fyne package -os linux -icon icon.png || true
+          # Check if the binary was created successfully
+          if [ -f "fyne-cross/bin/tikulocal" ]; then
+            echo "Found tikulocal binary in fyne-cross output"
+            ls -la fyne-cross/bin/tikulocal
+          else
+            echo "ERROR: tikulocal binary not found after Fyne-cross build"
+            ls -la fyne-cross/bin 2>/dev/null || echo "fyne-cross/bin directory not found"
+            exit 1
+          fi
           
           # Create a directory structure for the Linux app
           mkdir -p tikulocal-linux
           
-          # Copy the binary if it exists
-          if [ -f "tikulocal" ]; then
-            cp tikulocal tikulocal-linux/
-            echo "Copied binary to tikulocal-linux/"
-          else
-            echo "ERROR: tikulocal binary not found"
-            exit 1
-          fi
+          # Copy the binary from fyne-cross output
+          cp fyne-cross/bin/tikulocal tikulocal-linux/
+          echo "Copied binary to tikulocal-linux/"
           
           # Copy icon if it exists
           cp icon.png tikulocal-linux/ 2>/dev/null || echo "Icon not found, continuing without it"
@@ -150,35 +149,34 @@ jobs:
           echo "Created files:"
           ls -la *.tar.gz 2>/dev/null || echo "No tar.gz files found"
 
-      - name: Build with Fyne (macOS)
+      - name: Build with Fyne-cross (macOS)
         if: matrix.goos == 'darwin'
         run: |
-          # Build the binary first
-          CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
+          echo "Building with Fyne-cross for macOS..."
+          fyne-cross darwin -arch ${{ matrix.goarch }} -app-id com.tikulocal.app -icon icon.png
           
-          # Check if binary was created successfully
-          ls -la tikulocal || echo "Binary not found"
-          
-          # Try Fyne packaging
-          fyne package -os darwin -icon icon.png || true
+          # Check if the binary was created successfully
+          if [ -f "fyne-cross/bin/tikulocal" ]; then
+            echo "Found tikulocal binary in fyne-cross output"
+            ls -la fyne-cross/bin/tikulocal
+          else
+            echo "ERROR: tikulocal binary not found after Fyne-cross build"
+            ls -la fyne-cross/bin 2>/dev/null || echo "fyne-cross/bin directory not found"
+            exit 1
+          fi
           
           # Create zip package for macOS
-          if [ -d "tikulocal.app" ]; then
-            zip -r "${{ matrix.binary_name }}.app.zip" tikulocal.app/
-            echo "Created app zip from Fyne package"
+          if [ -d "fyne-cross/bin/tikulocal.app" ]; then
+            zip -r "${{ matrix.binary_name }}.app.zip" fyne-cross/bin/tikulocal.app/
+            echo "Created app zip from Fyne-cross package"
           else
             # If Fyne packaging failed, create a simple zip with the binary
-            echo "Fyne package not found, creating manual package"
+            echo "Fyne-cross app not found, creating manual package"
             mkdir -p tikulocal-macos
             
-            # Copy the binary if it exists
-            if [ -f "tikulocal" ]; then
-              cp tikulocal tikulocal-macos/
-              echo "Copied binary to tikulocal-macos/"
-            else
-              echo "ERROR: tikulocal binary not found"
-              exit 1
-            fi
+            # Copy the binary from fyne-cross output
+            cp fyne-cross/bin/tikulocal tikulocal-macos/
+            echo "Copied binary to tikulocal-macos/"
             
             # Copy icon if it exists
             cp icon.png tikulocal-macos/ 2>/dev/null || echo "Icon not found, continuing without it"
@@ -290,7 +288,7 @@ jobs:
       #     GOOS=darwin GOARCH=amd64 go build -v .
       #     GOOS=linux GOARCH=amd64 go build -v .
 
-      - name: Test Fyne package
+      - name: Test Fyne-cross
         run: |
-          # Test Fyne packaging (without actually creating packages)
-          fyne version
+          # Test Fyne-cross installation
+          fyne-cross version
