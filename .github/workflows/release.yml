@@ -50,12 +50,12 @@ jobs:
             goos: "darwin"
             goarch: "amd64"
             binary_name: "tikulocal-darwin-amd64"
-            package_ext: "app"
+            package_ext: "app.zip"
           - platform: "macos-latest"
             goos: "darwin"
             goarch: "arm64"
             binary_name: "tikulocal-darwin-arm64"
-            package_ext: "app"
+            package_ext: "app.zip"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -110,26 +110,57 @@ jobs:
       - name: Build with Fyne (Linux)
         if: matrix.goos == 'linux'
         run: |
-          fyne package -os linux -icon icon.png
-          # Create tar.gz package for Linux
-          if [ -d "tikulocal" ]; then
-            tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal/
-          elif [ -f "tikulocal" ]; then
-            # If it's just a binary, package it
-            tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal
-          fi
+          # Build the binary first
+          CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
+          
+          # Try Fyne packaging
+          fyne package -os linux -icon icon.png || true
+          
+          # Create a directory structure for the Linux app
+          mkdir -p tikulocal-linux
+          cp tikulocal tikulocal-linux/
+          cp icon.png tikulocal-linux/ 2>/dev/null || true
+          
+          # Create tar.gz package
+          tar -czf "${{ matrix.binary_name }}.tar.gz" tikulocal-linux/
+          
+          # List files to debug
+          ls -la
+          echo "Created files:"
+          ls -la *.tar.gz 2>/dev/null || echo "No tar.gz files found"
 
       - name: Build with Fyne (macOS)
         if: matrix.goos == 'darwin'
         run: |
-          fyne package -os darwin -icon icon.png
-          # Create zip package for macOS app
+          # Build the binary first
+          CGO_ENABLED=1 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o tikulocal .
+          
+          # Try Fyne packaging
+          fyne package -os darwin -icon icon.png || true
+          
+          # Create zip package for macOS
           if [ -d "tikulocal.app" ]; then
             zip -r "${{ matrix.binary_name }}.app.zip" tikulocal.app/
-          elif [ -f "tikulocal" ]; then
-            # If it's just a binary, package it
-            zip "${{ matrix.binary_name }}.zip" tikulocal
+          else
+            # If Fyne packaging failed, create a simple zip with the binary
+            mkdir -p tikulocal-macos
+            cp tikulocal tikulocal-macos/
+            cp icon.png tikulocal-macos/ 2>/dev/null || true
+            zip -r "${{ matrix.binary_name }}.app.zip" tikulocal-macos/
           fi
+          
+          # List files to debug
+          ls -la
+          echo "Created files:"
+          ls -la *.zip 2>/dev/null || echo "No zip files found"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            ${{ matrix.binary_name }}.*
+          retention-days: 7
 
       - name: Create Release and Upload Binary
         uses: softprops/action-gh-release@v2
@@ -202,17 +233,14 @@ jobs:
 
       - name: Run tests
         run: |
-          # Run unit tests
-          go test -v ./...
+          # Copy test files to main directory to run tests
+          cp test/verify_fix.go verify_fix_temp.go
+          go run verify_fix_temp.go parser.go models.go
+          rm verify_fix_temp.go
           
-          # Run integration tests if they exist
-          if [ -f "test/run_tests.bat" ]; then
-            echo "Running integration tests..."
-            cd test
-            # Convert Windows batch to shell script for Linux
-            go run verify_fix.go ../parser.go ../models.go
-            go run test_parser.go ../parser.go ../models.go
-          fi
+          cp test/test_parser.go test_parser_temp.go
+          go run test_parser_temp.go parser.go models.go
+          rm test_parser_temp.go
 
       - name: Build test
         run: |

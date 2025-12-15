@@ -73,3 +73,7 @@ func truncateText(text string, maxLen int) string {
 	}
 	return text[:maxLen] + "..."
 }
+
+func main() {
+	testParserFix()
+}

@@ -36,3 +36,7 @@ D、 煤气运输船
 		fmt.Printf("答案: %v\n", q.Answer)
 	}
 }
+
+func main() {
+	testParser()
+}

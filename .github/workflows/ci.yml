@@ -33,8 +33,19 @@ jobs:
     - name: Install dependencies
       run: go mod download
 
-    - name: Run tests
-      run: go test -v ./...
+    - name: Run unit tests
+      run: go test -v .  # 只测试当前目录，不递归到子目录
+
+    - name: Run integration tests
+      run: |
+        # Copy test files to main directory to run tests
+        cp test/verify_fix.go verify_fix_temp.go
+        go run verify_fix_temp.go parser.go models.go
+        rm verify_fix_temp.go
+        
+        cp test/test_parser.go test_parser_temp.go
+        go run test_parser_temp.go parser.go models.go
+        rm test_parser_temp.go
 
     - name: Run vet
       run: go vet ./...
