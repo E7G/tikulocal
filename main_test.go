@@ -1,9 +1,9 @@
 package main
 
 import (
-	"testing"
-	"strings"
 	"path/filepath"
+	"strings"
+	"testing"
 )
 
 // 测试文本清理函数
@@ -119,7 +119,7 @@ func isValidDocxFileForTest(filePath string) bool {
 	if filePath == "" {
 		return false
 	}
-	
+
 	// 检查文件扩展名
 	ext := strings.ToLower(getFileExtension(filePath))
 	return ext == ".docx"
@@ -321,19 +321,19 @@ func TestConstants(t *testing.T) {
 	if AppName != "com.tikulocal.app" {
 		t.Errorf("AppName = %q, want %q", AppName, "com.tikulocal.app")
 	}
-	
+
 	if WindowTitle != "题库管理系统" {
 		t.Errorf("WindowTitle = %q, want %q", WindowTitle, "题库管理系统")
 	}
-	
+
 	if DefaultItemsPerPage != 5 {
 		t.Errorf("DefaultItemsPerPage = %d, want %d", DefaultItemsPerPage, 5)
 	}
-	
+
 	if WebPort != ":8060" {
 		t.Errorf("WebPort = %q, want %q", WebPort, ":8060")
 	}
-	
+
 	if DBName != "tiku.db" {
 		t.Errorf("DBName = %q, want %q", DBName, "tiku.db")
 	}
@@ -345,12 +345,12 @@ func TestRegexCompilation(t *testing.T) {
 	if questionBlockPattern == nil {
 		t.Error("questionBlockPattern 未正确编译")
 	}
-	
+
 	// 测试选项正则
 	if optionPattern == nil {
 		t.Error("optionPattern 未正确编译")
 	}
-	
+
 	// 测试答案正则
 	if answerPattern == nil {
 		t.Error("answerPattern 未正确编译")
@@ -365,16 +365,103 @@ func TestStringProcessing(t *testing.T) {
 	if len(lines) != 3 {
 		t.Errorf("字符串分割结果长度 = %d, want %d", len(lines), 3)
 	}
-	
+
 	// 测试字符串替换
 	result := strings.ReplaceAll(text, "、", ".")
 	if !strings.Contains(result, ".") {
 		t.Error("字符串替换失败")
 	}
-	
+
 	// 测试字符串修剪
 	trimmed := strings.TrimSpace("  测试文本  ")
 	if trimmed != "测试文本" {
 		t.Errorf("字符串修剪失败: %q", trimmed)
 	}
-} 
+}
+
+// 测试油猴脚本导出格式解析
+func TestTampermonkeyFormat(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		wantCount   int
+		wantTypes   []string
+		wantAnswers [][]string
+	}{
+		{
+			name: "单选题-点号分隔",
+			input: `1 【单选题】
+这是题目内容
+选项：A.选项A内容 B.选项B内容 C.选项C内容 D.选项D内容
+我的答案：A`,
+			wantCount:   1,
+			wantTypes:   []string{"单选题"},
+			wantAnswers: [][]string{{"选项A内容"}},
+		},
+		{
+			name: "多选题-顿号分隔",
+			input: `1 【多选题】
+这是多选题目
+选项：A、选项A B、选项B C、选项C D、选项D
+正确答案：ABC`,
+			wantCount:   1,
+			wantTypes:   []string{"多选题"},
+			wantAnswers: [][]string{{"选项A", "选项B", "选项C"}},
+		},
+		{
+			name: "判断题",
+			input: `1 【判断题】
+这是判断题内容
+我的答案：对`,
+			wantCount:   1,
+			wantTypes:   []string{"判断题"},
+			wantAnswers: [][]string{{"对"}},
+		},
+		{
+			name: "多题目混合",
+			input: `1 【单选题】
+题目1内容
+选项：A.选项A B.选项B C.选项C D.选项D
+我的答案：A
+2 【判断题】
+题目2内容
+正确答案：错
+3 【多选题】
+题目3内容
+选项：A、选项A B、选项B C、选项C D、选项D
+正确答案：AC`,
+			wantCount:   3,
+			wantTypes:   []string{"单选题", "判断题", "多选题"},
+			wantAnswers: [][]string{{"选项A"}, {"错"}, {"选项A", "选项C"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			questions, err := ParseQuestions(tt.input)
+			if err != nil {
+				t.Errorf("ParseQuestions() error = %v", err)
+				return
+			}
+			if len(questions) != tt.wantCount {
+				t.Errorf("ParseQuestions() got %d questions, want %d", len(questions), tt.wantCount)
+				return
+			}
+			for i, q := range questions {
+				if i < len(tt.wantTypes) && q.Type != tt.wantTypes[i] {
+					t.Errorf("Question %d type = %q, want %q", i+1, q.Type, tt.wantTypes[i])
+				}
+				if i < len(tt.wantAnswers) {
+					if len(q.Answer) != len(tt.wantAnswers[i]) {
+						t.Errorf("Question %d answer count = %d, want %d", i+1, len(q.Answer), len(tt.wantAnswers[i]))
+					}
+					for j, ans := range q.Answer {
+						if j < len(tt.wantAnswers[i]) && ans != tt.wantAnswers[i][j] {
+							t.Errorf("Question %d answer[%d] = %q, want %q", i+1, j, ans, tt.wantAnswers[i][j])
+						}
+					}
+				}
+			}
+		})
+	}
+}

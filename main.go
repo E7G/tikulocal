@@ -642,45 +642,7 @@ func setupGUI() {
 			return
 		}
 
-		showProcessing("正在解析文档...")
-		progressBar.Show()
-		progressBar.SetValue(0)
-
-		fyne.Do(func() {
-			defer func() {
-				progressBar.Hide()
-				progressBar.SetValue(0)
-			}()
-
-			questions, err := loadDocx(path)
-			if err != nil {
-				showError("解析失败", err)
-				return
-			}
-
-			// 清洗题目文本，去除标点和空格
-			for i := range questions {
-				questions[i].Text = cleanText(questions[i].Text)
-			}
-
-			// 更新结果，使用卡片式显示
-			if resultContainer != nil {
-				previewCards := generatePreviewCards(questions)
-				resultContainer.Objects = previewCards
-				resultContainer.Refresh()
-			}
-
-			showSuccess(fmt.Sprintf("解析完成! 共添加 %d 道题目", len(questions)))
-
-			// 保存到数据库
-			if err := saveQuestionsToDB(questions); err != nil {
-				showError("保存失败", err)
-			}
-
-			// 解析完成后显示所有题目
-			currentPage = 1
-			showAllQuestions()
-		})
+		processDroppedFiles([]string{path})
 	})
 
 	// 搜索区域
@@ -890,24 +852,21 @@ func saveQuestionsToDB(questions []Question) error {
 	skippedCount := 0
 
 	for _, q := range questions {
-		// 清洗题目文本
 		cleanedText := cleanText(q.Text)
 		if cleanedText == "" {
 			skippedCount++
 			continue
 		}
 
-		// 检查题目是否已存在（排除已软删除的记录）
 		var existing Question
-		if err := db.Unscoped().Where("text = ?", cleanedText).First(&existing).Error; err == nil {
-			// 如果找到记录，检查是否已被软删除
+		err := tx.Unscoped().Where("text = ?", cleanedText).First(&existing).Error
+		if err == nil {
 			if existing.DeletedAt.Valid {
-				// 如果已被软删除，则恢复该记录并更新内容
 				log.Printf("发现已删除的重复题目，正在恢复: %s", cleanedText)
 				existing.Type = q.Type
 				existing.Options = q.Options
 				existing.Answer = q.Answer
-				existing.DeletedAt = gorm.DeletedAt{} // 清除软删除标记
+				existing.DeletedAt = gorm.DeletedAt{}
 
 				if err := tx.Unscoped().Save(&existing).Error; err != nil {
 					tx.Rollback()
@@ -915,15 +874,26 @@ func saveQuestionsToDB(questions []Question) error {
 				}
 				savedCount++
 			} else {
-				// 如果记录存在且未被删除，则跳过
+				existing.Type = q.Type
+				existing.Options = q.Options
+				existing.Answer = q.Answer
+				if err := tx.Save(&existing).Error; err != nil {
+					tx.Rollback()
+					return fmt.Errorf("更新题目失败: %w", err)
+				}
 				skippedCount++
+				log.Printf("题目已存在，已更新: %s", cleanedText[:min(30, len(cleanedText))])
 			}
 			continue
 		}
 
-		// 保存新题目
 		q.Text = cleanedText
 		if err := tx.Create(&q).Error; err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint") {
+				log.Printf("跳过重复题目: %s", cleanedText[:min(30, len(cleanedText))])
+				skippedCount++
+				continue
+			}
 			tx.Rollback()
 			return fmt.Errorf("保存题目失败: %w", err)
 		}
@@ -936,6 +906,13 @@ func saveQuestionsToDB(questions []Question) error {
 
 	log.Printf("保存完成: 新增 %d 道题目, 跳过 %d 道重复题目", savedCount, skippedCount)
 	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // 搜索题目 - 优化版本
@@ -1688,39 +1665,205 @@ func getFileName(filePath string) string {
 
 // 设置拖放区域
 func setupDropZone(entry *widget.Entry, window fyne.Window) {
-	// 使用Fyne的正确拖放API
 	window.SetOnDropped(func(pos fyne.Position, uris []fyne.URI) {
-		if len(uris) > 0 {
-			// 获取第一个拖放的文件URI
-			uri := uris[0]
-			filePath := uri.Path()
+		if len(uris) == 0 {
+			return
+		}
 
-			// 处理文件路径
+		var validFiles []string
+		var invalidFiles []string
+
+		for _, uri := range uris {
+			filePath := uri.Path()
 			filePath = cleanDropPath(filePath)
 
 			if isValidDocxFile(filePath) {
-				entry.SetText(filePath)
-				showSuccess("文件已拖放: " + getFileName(filePath))
+				validFiles = append(validFiles, filePath)
 			} else {
-				showError("文件格式错误", fmt.Errorf("请拖放有效的DOCX文件"))
+				invalidFiles = append(invalidFiles, getFileName(filePath))
 			}
 		}
+
+		if len(invalidFiles) > 0 {
+			showError("部分文件格式错误", fmt.Errorf("跳过非DOCX文件: %v", invalidFiles))
+		}
+
+		if len(validFiles) == 0 {
+			if len(uris) > 0 {
+				showError("文件格式错误", fmt.Errorf("请拖放有效的DOCX文件"))
+			}
+			return
+		}
+
+		if len(validFiles) == 1 {
+			entry.SetText(validFiles[0])
+			showSuccess(fmt.Sprintf("文件已拖放: %s，正在解析...", getFileName(validFiles[0])))
+		} else {
+			entry.SetText(fmt.Sprintf("已拖放 %d 个文件", len(validFiles)))
+			showProcessing(fmt.Sprintf("正在批量解析 %d 个文件...", len(validFiles)))
+		}
+
+		processDroppedFiles(validFiles)
 	})
 
-	// 保留OnSubmitted事件作为备用
 	entry.OnSubmitted = func(path string) {
-		if path != "" {
-			// 处理Windows拖放的文件路径格式
-			path = cleanDropPath(path)
+		if path == "" {
+			return
+		}
+		path = cleanDropPath(path)
 
-			if isValidDocxFile(path) {
-				entry.SetText(path)
-				showSuccess("文件已拖放: " + getFileName(path))
-			} else {
-				showError("文件格式错误", fmt.Errorf("请拖放有效的DOCX文件"))
-			}
+		if isValidDocxFile(path) {
+			entry.SetText(path)
+			showSuccess("文件已拖放，正在解析...")
+			processDroppedFiles([]string{path})
+		} else {
+			showError("文件格式错误", fmt.Errorf("请拖放有效的DOCX文件"))
 		}
 	}
+}
+
+func processDroppedFiles(filePaths []string) {
+	if len(filePaths) == 0 {
+		return
+	}
+
+	showProcessing(fmt.Sprintf("正在解析 %d 个文件...", len(filePaths)))
+	progressBar.Show()
+	progressBar.SetValue(0)
+
+	fyne.Do(func() {
+		defer func() {
+			progressBar.Hide()
+			progressBar.SetValue(0)
+		}()
+
+		totalQuestions := 0
+		totalSaved := 0
+		totalSkipped := 0
+		var allQuestions []Question
+
+		for i, path := range filePaths {
+			progress := float64(i+1) / float64(len(filePaths))
+			progressBar.SetValue(progress)
+			showProcessing(fmt.Sprintf("正在解析 %d/%d: %s", i+1, len(filePaths), getFileName(path)))
+
+			questions, err := loadDocx(path)
+			if err != nil {
+				log.Printf("解析文件失败 %s: %v", getFileName(path), err)
+				continue
+			}
+
+			for j := range questions {
+				questions[j].Text = cleanText(questions[j].Text)
+			}
+
+			allQuestions = append(allQuestions, questions...)
+			totalQuestions += len(questions)
+
+			log.Printf("文件 %s 解析完成，共 %d 道题目", getFileName(path), len(questions))
+		}
+
+		if len(allQuestions) == 0 {
+			showError("解析失败", fmt.Errorf("没有成功解析任何题目"))
+			return
+		}
+
+		if resultContainer != nil {
+			previewCards := generatePreviewCards(allQuestions)
+			resultContainer.Objects = previewCards
+			resultContainer.Refresh()
+		}
+
+		showProcessing("正在保存到数据库...")
+
+		savedCount, skippedCount, err := saveQuestionsToDBWithCount(allQuestions)
+		if err != nil {
+			showError("保存失败", err)
+			return
+		}
+		totalSaved = savedCount
+		totalSkipped = skippedCount
+
+		showSuccess(fmt.Sprintf("批量解析完成! 共处理 %d 个文件，解析 %d 道题目，新增 %d 道，跳过 %d 道重复",
+			len(filePaths), totalQuestions, totalSaved, totalSkipped))
+
+		currentPage = 1
+		showAllQuestions()
+	})
+}
+
+func saveQuestionsToDBWithCount(questions []Question) (int, int, error) {
+	if len(questions) == 0 {
+		return 0, 0, fmt.Errorf("没有题目需要保存")
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		return 0, 0, fmt.Errorf("开始事务失败: %w", tx.Error)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Printf("事务回滚: %v", r)
+		}
+	}()
+
+	savedCount := 0
+	skippedCount := 0
+
+	for _, q := range questions {
+		cleanedText := cleanText(q.Text)
+		if cleanedText == "" {
+			skippedCount++
+			continue
+		}
+
+		var existing Question
+		err := tx.Unscoped().Where("text = ?", cleanedText).First(&existing).Error
+		if err == nil {
+			if existing.DeletedAt.Valid {
+				log.Printf("发现已删除的重复题目，正在恢复: %s", cleanedText)
+				existing.Type = q.Type
+				existing.Options = q.Options
+				existing.Answer = q.Answer
+				existing.DeletedAt = gorm.DeletedAt{}
+
+				if err := tx.Unscoped().Save(&existing).Error; err != nil {
+					tx.Rollback()
+					return savedCount, skippedCount, fmt.Errorf("恢复题目失败: %w", err)
+				}
+				savedCount++
+			} else {
+				existing.Type = q.Type
+				existing.Options = q.Options
+				existing.Answer = q.Answer
+				if err := tx.Save(&existing).Error; err != nil {
+					tx.Rollback()
+					return savedCount, skippedCount, fmt.Errorf("更新题目失败: %w", err)
+				}
+				skippedCount++
+			}
+			continue
+		}
+
+		q.Text = cleanedText
+		if err := tx.Create(&q).Error; err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint") {
+				skippedCount++
+				continue
+			}
+			tx.Rollback()
+			return savedCount, skippedCount, fmt.Errorf("保存题目失败: %w", err)
+		}
+		savedCount++
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return savedCount, skippedCount, fmt.Errorf("提交事务失败: %w", err)
+	}
+
+	return savedCount, skippedCount, nil
 }
 
 // 清理拖放的文件路径
@@ -1736,34 +1879,39 @@ func cleanDropPath(path string) string {
 
 // ==================== 数据管理功能 ====================
 
-// 显示添加题目对话框
 func showAddQuestionDialog() {
-	// 题型选择
 	typeSelect := widget.NewSelect([]string{"单选题", "多选题", "判断题", "填空题", "简答题"}, nil)
 	typeSelect.SetSelected("单选题")
 
-	// 题干输入
 	questionEntry := widget.NewMultiLineEntry()
 	questionEntry.SetPlaceHolder("请输入题目内容...")
 	questionEntry.Wrapping = fyne.TextWrapWord
+	questionEntry.SetMinRowsVisible(3)
 
-	// 选项输入区域
 	optionsContainer := container.NewVBox()
 	var optionEntries []*widget.Entry
 
-	// 添加选项的函数
 	addOption := func() {
+		idx := len(optionEntries)
+		letter := string(rune('A' + idx))
 		optionEntry := widget.NewEntry()
-		optionEntry.SetPlaceHolder(fmt.Sprintf("选项 %c", 'A'+len(optionEntries)))
+		optionEntry.SetPlaceHolder("输入选项内容")
 		optionEntries = append(optionEntries, optionEntry)
-		optionsContainer.Add(container.NewHBox(
-			widget.NewLabel(fmt.Sprintf("%c.", 'A'+len(optionEntries)-1)),
-			optionEntry,
-		))
+
+		optionCard := createOptionCard(letter, optionEntry, func() {
+			for i, obj := range optionsContainer.Objects {
+				if i == idx {
+					optionsContainer.Remove(obj)
+					break
+				}
+			}
+			optionEntries = append(optionEntries[:idx], optionEntries[idx+1:]...)
+			refreshOptionLabels(optionsContainer, optionEntries)
+		})
+		optionsContainer.Add(optionCard)
 		optionsContainer.Refresh()
 	}
 
-	// 移除选项的函数
 	removeOption := func() {
 		if len(optionEntries) > 0 {
 			optionsContainer.Remove(optionsContainer.Objects[len(optionsContainer.Objects)-1])
@@ -1772,98 +1920,132 @@ func showAddQuestionDialog() {
 		}
 	}
 
-	// 选项管理按钮
-	optionButtons := container.NewHBox(
-		widget.NewButton("➕ 添加选项", addOption),
-		widget.NewButton("➖ 移除选项", removeOption),
+	answerEntry := widget.NewEntry()
+	answerEntry.SetPlaceHolder("如：A 或 A,B,C 或 对/错")
+
+	for i := 0; i < 4; i++ {
+		idx := i
+		letter := string(rune('A' + i))
+		optionEntry := widget.NewEntry()
+		optionEntry.SetPlaceHolder("输入选项内容")
+		optionEntries = append(optionEntries, optionEntry)
+
+		optionCard := createOptionCard(letter, optionEntry, func() {
+			optionsContainer.Remove(optionsContainer.Objects[idx])
+			optionEntries = append(optionEntries[:idx], optionEntries[idx+1:]...)
+			refreshOptionLabels(optionsContainer, optionEntries)
+		})
+		optionsContainer.Add(optionCard)
+	}
+
+	toolbar := container.NewHBox(
+		widget.NewButtonWithIcon("添加选项", theme.ContentAddIcon(), addOption),
+		widget.NewButtonWithIcon("移除最后", theme.ContentRemoveIcon(), removeOption),
 	)
 
-	// 答案输入
-	answerEntry := widget.NewEntry()
-	answerEntry.SetPlaceHolder("请输入答案（如：A 或 A,B 或 对/错）")
+	typeLabel := widget.NewLabelWithStyle("题目类型", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	questionLabel := widget.NewLabelWithStyle("题目内容", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	optionsLabel := widget.NewLabelWithStyle("选项设置", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	answerLabel := widget.NewLabelWithStyle("正确答案", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 
-	// 初始添加4个选项
-	for i := 0; i < 4; i++ {
-		addOption()
-	}
+	hintType := widget.NewLabel("选择题目所属类型")
+	hintType.TextStyle = fyne.TextStyle{Italic: true}
+	hintQuestion := widget.NewLabel("输入题目的具体内容")
+	hintQuestion.TextStyle = fyne.TextStyle{Italic: true}
+	hintOptions := widget.NewLabel("为选择题添加选项，判断题可留空")
+	hintOptions.TextStyle = fyne.TextStyle{Italic: true}
+	hintAnswer := widget.NewLabel("单选填字母，多选用逗号分隔，判断题填对/错")
+	hintAnswer.TextStyle = fyne.TextStyle{Italic: true}
 
-	// 创建表单
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "题型", Widget: typeSelect, HintText: "选择题目类型"},
-			{Text: "题干", Widget: questionEntry, HintText: "输入题目内容"},
-			{Text: "选项", Widget: container.NewVBox(optionButtons, optionsContainer), HintText: "添加题目选项"},
-			{Text: "答案", Widget: answerEntry, HintText: "输入正确答案"},
-		},
-	}
+	content := container.NewVBox(
+		typeLabel, hintType, typeSelect, widget.NewSeparator(),
+		questionLabel, hintQuestion, questionEntry, widget.NewSeparator(),
+		optionsLabel, hintOptions, toolbar, optionsContainer, widget.NewSeparator(),
+		answerLabel, hintAnswer, answerEntry,
+	)
 
-	// 显示对话框
-	dialog.ShowForm("添加题目", "确定", "取消", form.Items, func(confirm bool) {
-		if confirm {
-			// 验证输入
-			if questionEntry.Text == "" {
-				dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
-				return
+	scroll := container.NewVScroll(content)
+	scroll.SetMinSize(fyne.NewSize(500, 450))
+
+	dialog.ShowCustomConfirm("添加新题目", "保存", "取消", scroll, func(confirm bool) {
+		if !confirm {
+			return
+		}
+
+		if questionEntry.Text == "" {
+			dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
+			return
+		}
+
+		if answerEntry.Text == "" {
+			dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
+			return
+		}
+
+		var options []string
+		for _, entry := range optionEntries {
+			if entry.Text != "" {
+				options = append(options, strings.TrimSpace(entry.Text))
 			}
+		}
 
-			if answerEntry.Text == "" {
-				dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
-				return
-			}
+		var answers []string
+		answerText := strings.TrimSpace(answerEntry.Text)
 
-			// 收集选项
-			var options []string
-			for _, entry := range optionEntries {
-				if entry.Text != "" {
-					options = append(options, strings.TrimSpace(entry.Text))
-				}
-			}
-
-			// 处理答案
-			var answers []string
-			answerText := strings.TrimSpace(answerEntry.Text)
-
-			// 如果是字母答案（A、B、C、D等）
-			if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
-				for _, ch := range answerText {
-					if ch >= 'A' && ch <= 'Z' && ch != ',' {
-						idx := int(ch - 'A')
-						if idx < len(options) {
-							answers = append(answers, options[idx])
-						}
+		if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
+			for _, ch := range answerText {
+				if ch >= 'A' && ch <= 'Z' && ch != ',' {
+					idx := int(ch - 'A')
+					if idx < len(options) {
+						answers = append(answers, options[idx])
 					}
 				}
-			} else {
-				// 直接使用答案文本
-				answers = []string{answerText}
 			}
-
-			// 创建题目
-			question := Question{
-				Type:    typeSelect.Selected,
-				Text:    cleanText(questionEntry.Text),
-				Options: options,
-				Answer:  answers,
-			}
-
-			// 保存到数据库
-			if err := db.Create(&question).Error; err != nil {
-				dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
-				return
-			}
-
-			dialog.ShowInformation("成功", "题目添加成功！", guiWindow)
-
-			// 刷新显示
-			showAllQuestions()
-			updateStats()
+		} else {
+			answers = []string{answerText}
 		}
+
+		question := Question{
+			Type:    typeSelect.Selected,
+			Text:    cleanText(questionEntry.Text),
+			Options: options,
+			Answer:  answers,
+		}
+
+		if err := db.Create(&question).Error; err != nil {
+			dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
+			return
+		}
+
+		dialog.ShowInformation("成功", "题目添加成功！", guiWindow)
+		showAllQuestions()
+		updateStats()
 	}, guiWindow)
+}
+
+func createOptionCard(letter string, entry *widget.Entry, onRemove func()) *fyne.Container {
+	label := widget.NewLabelWithStyle(letter+".", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	removeBtn := widget.NewButtonWithIcon("", theme.DeleteIcon(), onRemove)
+	removeBtn.Importance = widget.LowImportance
+
+	return container.NewBorder(nil, nil, label, removeBtn, entry)
+}
+
+func refreshOptionLabels(container *fyne.Container, entries []*widget.Entry) {
+	for i, obj := range container.Objects {
+		if card, ok := obj.(*fyne.Container); ok {
+			if len(card.Objects) >= 3 {
+				if label, ok := card.Objects[0].(*widget.Label); ok {
+					label.SetText(string(rune('A'+i)) + ".")
+				}
+			}
+		}
+	}
+	container.Refresh()
 }
 
 // 显示编辑题目对话框
 func showEditQuestionDialog() {
-	// 获取当前页面的题目
 	results, err := searchQuestionsPaginated("", currentPage, itemsPerPage)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("获取题目失败: %v", err), guiWindow)
@@ -1875,15 +2057,14 @@ func showEditQuestionDialog() {
 		return
 	}
 
-	// 创建题目选择列表
 	var questionItems []string
 	for i, q := range results {
 		questionNum := (currentPage-1)*itemsPerPage + i + 1
 		preview := q.Text
-		if len([]rune(preview)) > 30 {
-			preview = string([]rune(preview)[:30]) + "..."
+		if len([]rune(preview)) > 40 {
+			preview = string([]rune(preview)[:40]) + "..."
 		}
-		questionItems = append(questionItems, fmt.Sprintf("%d. %s", questionNum, preview))
+		questionItems = append(questionItems, fmt.Sprintf("%d. [%s] %s", questionNum, q.Type, preview))
 	}
 
 	questionSelect := widget.NewSelect(questionItems, nil)
@@ -1891,14 +2072,14 @@ func showEditQuestionDialog() {
 		questionSelect.SetSelected(questionItems[0])
 	}
 
-	// 选择题目后显示编辑表单
-	questionSelect.OnChanged = func(selected string) {
-		if selected == "" {
+	selectLabel := widget.NewLabelWithStyle("选择要编辑的题目", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+
+	editBtn := widget.NewButtonWithIcon("编辑选中题目", theme.DocumentIcon(), func() {
+		if questionSelect.Selected == "" {
 			return
 		}
 
-		// 解析选中的题目索引
-		parts := strings.Split(selected, ". ")
+		parts := strings.Split(questionSelect.Selected, ". ")
 		if len(parts) < 2 {
 			return
 		}
@@ -1908,20 +2089,20 @@ func showEditQuestionDialog() {
 			return
 		}
 
-		// 获取对应的题目
 		questionIndex := index - 1 - (currentPage-1)*itemsPerPage
 		if questionIndex < 0 || questionIndex >= len(results) {
 			return
 		}
 
-		question := results[questionIndex]
-		showEditQuestionForm(question)
-	}
+		showEditQuestionForm(results[questionIndex])
+	})
 
-	// 显示选择对话框
 	content := container.NewVBox(
-		widget.NewLabel("请选择要编辑的题目："),
+		selectLabel,
+		widget.NewSeparator(),
 		questionSelect,
+		widget.NewSeparator(),
+		editBtn,
 	)
 
 	dialog.ShowCustom("选择题目", "关闭", content, guiWindow)
@@ -1929,32 +2110,38 @@ func showEditQuestionDialog() {
 
 // 显示编辑题目表单
 func showEditQuestionForm(question Question) {
-	// 题型选择
 	typeSelect := widget.NewSelect([]string{"单选题", "多选题", "判断题", "填空题", "简答题"}, nil)
 	typeSelect.SetSelected(question.Type)
 
-	// 题干输入
 	questionEntry := widget.NewMultiLineEntry()
 	questionEntry.SetText(question.Text)
 	questionEntry.Wrapping = fyne.TextWrapWord
+	questionEntry.SetMinRowsVisible(3)
 
-	// 选项输入区域
 	optionsContainer := container.NewVBox()
 	var optionEntries []*widget.Entry
 
-	// 添加选项的函数
 	addOption := func() {
+		idx := len(optionEntries)
+		letter := string(rune('A' + idx))
 		optionEntry := widget.NewEntry()
-		optionEntry.SetPlaceHolder(fmt.Sprintf("选项 %c", 'A'+len(optionEntries)))
+		optionEntry.SetPlaceHolder("输入选项内容")
 		optionEntries = append(optionEntries, optionEntry)
-		optionsContainer.Add(container.NewHBox(
-			widget.NewLabel(fmt.Sprintf("%c.", 'A'+len(optionEntries)-1)),
-			optionEntry,
-		))
+
+		optionCard := createOptionCard(letter, optionEntry, func() {
+			for i, obj := range optionsContainer.Objects {
+				if i == idx {
+					optionsContainer.Remove(obj)
+					break
+				}
+			}
+			optionEntries = append(optionEntries[:idx], optionEntries[idx+1:]...)
+			refreshOptionLabels(optionsContainer, optionEntries)
+		})
+		optionsContainer.Add(optionCard)
 		optionsContainer.Refresh()
 	}
 
-	// 移除选项的函数
 	removeOption := func() {
 		if len(optionEntries) > 0 {
 			optionsContainer.Remove(optionsContainer.Objects[len(optionsContainer.Objects)-1])
@@ -1963,93 +2150,106 @@ func showEditQuestionForm(question Question) {
 		}
 	}
 
-	// 选项管理按钮
-	optionButtons := container.NewHBox(
-		widget.NewButton("➕ 添加选项", addOption),
-		widget.NewButton("➖ 移除选项", removeOption),
-	)
-
-	// 加载现有选项
-	for i, opt := range question.Options {
-		addOption()
-		if i < len(optionEntries) {
-			optionEntries[i].SetText(opt)
-		}
-	}
-
-	// 答案输入
 	answerEntry := widget.NewEntry()
 	answerEntry.SetText(strings.Join(question.Answer, ", "))
 
-	// 创建表单
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "题型", Widget: typeSelect, HintText: "选择题目类型"},
-			{Text: "题干", Widget: questionEntry, HintText: "输入题目内容"},
-			{Text: "选项", Widget: container.NewVBox(optionButtons, optionsContainer), HintText: "编辑题目选项"},
-			{Text: "答案", Widget: answerEntry, HintText: "输入正确答案"},
-		},
+	for i, opt := range question.Options {
+		idx := i
+		letter := string(rune('A' + i))
+		optionEntry := widget.NewEntry()
+		optionEntry.SetText(opt)
+		optionEntries = append(optionEntries, optionEntry)
+
+		optionCard := createOptionCard(letter, optionEntry, func() {
+			optionsContainer.Remove(optionsContainer.Objects[idx])
+			optionEntries = append(optionEntries[:idx], optionEntries[idx+1:]...)
+			refreshOptionLabels(optionsContainer, optionEntries)
+		})
+		optionsContainer.Add(optionCard)
 	}
 
-	// 显示对话框
-	dialog.ShowForm("编辑题目", "确定", "取消", form.Items, func(confirm bool) {
-		if confirm {
-			// 验证输入
-			if questionEntry.Text == "" {
-				dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
-				return
+	toolbar := container.NewHBox(
+		widget.NewButtonWithIcon("添加选项", theme.ContentAddIcon(), addOption),
+		widget.NewButtonWithIcon("移除最后", theme.ContentRemoveIcon(), removeOption),
+	)
+
+	idLabel := widget.NewLabelWithStyle(fmt.Sprintf("ID: %d", question.ID), fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+	typeLabel := widget.NewLabelWithStyle("题目类型", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	questionLabel := widget.NewLabelWithStyle("题目内容", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	optionsLabel := widget.NewLabelWithStyle("选项设置", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	answerLabel := widget.NewLabelWithStyle("正确答案", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+
+	hintType := widget.NewLabel("选择题目所属类型")
+	hintType.TextStyle = fyne.TextStyle{Italic: true}
+	hintQuestion := widget.NewLabel("输入题目的具体内容")
+	hintQuestion.TextStyle = fyne.TextStyle{Italic: true}
+	hintOptions := widget.NewLabel("为选择题添加选项，判断题可留空")
+	hintOptions.TextStyle = fyne.TextStyle{Italic: true}
+	hintAnswer := widget.NewLabel("单选填字母，多选用逗号分隔，判断题填对/错")
+	hintAnswer.TextStyle = fyne.TextStyle{Italic: true}
+
+	content := container.NewVBox(
+		idLabel, widget.NewSeparator(),
+		typeLabel, hintType, typeSelect, widget.NewSeparator(),
+		questionLabel, hintQuestion, questionEntry, widget.NewSeparator(),
+		optionsLabel, hintOptions, toolbar, optionsContainer, widget.NewSeparator(),
+		answerLabel, hintAnswer, answerEntry,
+	)
+
+	scroll := container.NewVScroll(content)
+	scroll.SetMinSize(fyne.NewSize(500, 450))
+
+	dialog.ShowCustomConfirm("编辑题目", "保存", "取消", scroll, func(confirm bool) {
+		if !confirm {
+			return
+		}
+
+		if questionEntry.Text == "" {
+			dialog.ShowError(fmt.Errorf("题干不能为空"), guiWindow)
+			return
+		}
+
+		if answerEntry.Text == "" {
+			dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
+			return
+		}
+
+		var options []string
+		for _, entry := range optionEntries {
+			if entry.Text != "" {
+				options = append(options, strings.TrimSpace(entry.Text))
 			}
+		}
 
-			if answerEntry.Text == "" {
-				dialog.ShowError(fmt.Errorf("答案不能为空"), guiWindow)
-				return
-			}
+		var answers []string
+		answerText := strings.TrimSpace(answerEntry.Text)
 
-			// 收集选项
-			var options []string
-			for _, entry := range optionEntries {
-				if entry.Text != "" {
-					options = append(options, strings.TrimSpace(entry.Text))
-				}
-			}
-
-			// 处理答案
-			var answers []string
-			answerText := strings.TrimSpace(answerEntry.Text)
-
-			// 如果是字母答案（A、B、C、D等）
-			if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
-				for _, ch := range answerText {
-					if ch >= 'A' && ch <= 'Z' && ch != ',' {
-						idx := int(ch - 'A')
-						if idx < len(options) {
-							answers = append(answers, options[idx])
-						}
+		if matched, _ := regexp.MatchString(`^[A-Z,]+$`, answerText); matched {
+			for _, ch := range answerText {
+				if ch >= 'A' && ch <= 'Z' && ch != ',' {
+					idx := int(ch - 'A')
+					if idx < len(options) {
+						answers = append(answers, options[idx])
 					}
 				}
-			} else {
-				// 直接使用答案文本
-				answers = []string{answerText}
 			}
-
-			// 更新题目
-			question.Type = typeSelect.Selected
-			question.Text = cleanText(questionEntry.Text)
-			question.Options = options
-			question.Answer = answers
-
-			// 保存到数据库
-			if err := db.Save(&question).Error; err != nil {
-				dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
-				return
-			}
-
-			dialog.ShowInformation("成功", "题目更新成功！", guiWindow)
-
-			// 刷新显示
-			showAllQuestions()
-			updateStats()
+		} else {
+			answers = []string{answerText}
 		}
+
+		question.Type = typeSelect.Selected
+		question.Text = cleanText(questionEntry.Text)
+		question.Options = options
+		question.Answer = answers
+
+		if err := db.Save(&question).Error; err != nil {
+			dialog.ShowError(fmt.Errorf("保存失败: %v", err), guiWindow)
+			return
+		}
+
+		dialog.ShowInformation("成功", "题目更新成功！", guiWindow)
+		showAllQuestions()
+		updateStats()
 	}, guiWindow)
 }
 

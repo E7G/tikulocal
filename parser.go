@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"unicode/utf8"
 )
 
-// TokenType 表示词法单元的类型
 type TokenType int
 
 const (
@@ -16,8 +14,10 @@ const (
 	TokenTypeQuestionStem
 	TokenTypeOptionMarker
 	TokenTypeOptionText
-	TokenTypeAnswerMarker
-	TokenTypeAnswerText
+	TokenTypeCorrectAnswerMarker
+	TokenTypeCorrectAnswerText
+	TokenTypeMyAnswerMarker
+	TokenTypeMyAnswerText
 	TokenTypeStatusMarker
 	TokenTypeStatusText
 	TokenTypeScoreMarker
@@ -25,7 +25,6 @@ const (
 	TokenTypeUnknown
 )
 
-// Token 表示一个词法单元
 type Token struct {
 	Type  TokenType
 	Value string
@@ -47,11 +46,10 @@ func NewParser() *Parser {
 }
 
 // tokenize 执行词法分析，将文本转换为词法单元
-// tokenize 执行词法分析，将文本转换为词法单元
 func (p *Parser) tokenize(text string) {
 	lines := strings.Split(text, "\n")
 	inOptionsSection := false
-	currentStem := "" // 累积当前题干
+	currentStem := ""
 
 	for lineNum, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -59,9 +57,7 @@ func (p *Parser) tokenize(text string) {
 			continue
 		}
 
-		// 检查是否是题目编号（例如 "50 【判断题】"）
 		if strings.Contains(trimmed, "【") && strings.Contains(trimmed, "】") {
-			// 保存之前的题干（如果有）
 			if currentStem != "" {
 				p.tokens = append(p.tokens, Token{
 					Type:  TokenTypeQuestionStem,
@@ -71,29 +67,40 @@ func (p *Parser) tokenize(text string) {
 				currentStem = ""
 			}
 
-			parts := strings.SplitN(trimmed, " ", 2)
-			if len(parts) >= 2 {
-				// 添加题目编号
-				p.tokens = append(p.tokens, Token{
-					Type:  TokenTypeQuestionNumber,
-					Value: strings.TrimSpace(parts[0]),
-					Line:  lineNum + 1,
-				})
+			parts := strings.Fields(trimmed)
+			if len(parts) >= 1 {
+				var questionNum string
+				var qType string
 
-				// 提取题型
-				typeStart := strings.Index(parts[1], "【")
-				typeEnd := strings.Index(parts[1], "】")
-				if typeStart != -1 && typeEnd != -1 && typeEnd > typeStart {
-					qType := strings.TrimSpace(parts[1][typeStart+1 : typeEnd])
-					// 确保题型编码正确
-					if !utf8.ValidString(qType) {
-						qType = strings.Map(func(r rune) rune {
-							if r == utf8.RuneError {
-								return -1
+				for _, part := range parts {
+					if strings.Contains(part, "【") && strings.Contains(part, "】") {
+						typeStart := strings.Index(part, "【")
+						typeEnd := strings.Index(part, "】")
+						if typeStart != -1 && typeEnd != -1 && typeEnd > typeStart {
+							qType = strings.TrimSpace(part[typeStart+1 : typeEnd])
+							if !utf8.ValidString(qType) {
+								qType = strings.Map(func(r rune) rune {
+									if r == utf8.RuneError {
+										return -1
+									}
+									return r
+								}, qType)
 							}
-							return r
-						}, qType)
+						}
+					} else if questionNum == "" {
+						questionNum = strings.TrimRight(part, ".．")
 					}
+				}
+
+				if questionNum != "" {
+					p.tokens = append(p.tokens, Token{
+						Type:  TokenTypeQuestionNumber,
+						Value: questionNum,
+						Line:  lineNum + 1,
+					})
+				}
+
+				if qType != "" {
 					p.tokens = append(p.tokens, Token{
 						Type:  TokenTypeQuestionType,
 						Value: qType,
@@ -138,9 +145,7 @@ func (p *Parser) tokenize(text string) {
 			inOptionsSection = false
 		}
 
-		// 检查是否是答案标记
-		if strings.HasPrefix(trimmed, "我的答案") || strings.HasPrefix(trimmed, "正确答案") || strings.HasPrefix(trimmed, "答案") {
-			// 保存之前的题干（如果有）
+		if strings.HasPrefix(trimmed, "正确答案") {
 			if currentStem != "" {
 				p.tokens = append(p.tokens, Token{
 					Type:  TokenTypeQuestionStem,
@@ -150,31 +155,105 @@ func (p *Parser) tokenize(text string) {
 				currentStem = ""
 			}
 
-			var marker, answerText string
-
-			// 尝试不同的分割方式
+			var answerText string
 			if strings.Contains(trimmed, "：") {
 				parts := strings.SplitN(trimmed, "：", 2)
 				if len(parts) >= 2 {
-					marker = strings.TrimSpace(parts[0])
 					answerText = strings.TrimSpace(parts[1])
 				}
 			} else if strings.Contains(trimmed, ":") {
 				parts := strings.SplitN(trimmed, ":", 2)
 				if len(parts) >= 2 {
-					marker = strings.TrimSpace(parts[0])
 					answerText = strings.TrimSpace(parts[1])
 				}
 			}
 
-			if marker != "" && answerText != "" {
+			if answerText != "" {
 				p.tokens = append(p.tokens, Token{
-					Type:  TokenTypeAnswerMarker,
-					Value: marker,
+					Type:  TokenTypeCorrectAnswerMarker,
+					Value: "正确答案",
 					Line:  lineNum + 1,
 				})
 				p.tokens = append(p.tokens, Token{
-					Type:  TokenTypeAnswerText,
+					Type:  TokenTypeCorrectAnswerText,
+					Value: answerText,
+					Line:  lineNum + 1,
+				})
+			}
+			inOptionsSection = false
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "我的答案") {
+			if currentStem != "" {
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeQuestionStem,
+					Value: strings.TrimSpace(currentStem),
+					Line:  lineNum,
+				})
+				currentStem = ""
+			}
+
+			var answerText string
+			if strings.Contains(trimmed, "：") {
+				parts := strings.SplitN(trimmed, "：", 2)
+				if len(parts) >= 2 {
+					answerText = strings.TrimSpace(parts[1])
+				}
+			} else if strings.Contains(trimmed, ":") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) >= 2 {
+					answerText = strings.TrimSpace(parts[1])
+				}
+			}
+
+			if answerText != "" {
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeMyAnswerMarker,
+					Value: "我的答案",
+					Line:  lineNum + 1,
+				})
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeMyAnswerText,
+					Value: answerText,
+					Line:  lineNum + 1,
+				})
+			}
+			inOptionsSection = false
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "答案") && !strings.HasPrefix(trimmed, "答案状态") {
+			if currentStem != "" {
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeQuestionStem,
+					Value: strings.TrimSpace(currentStem),
+					Line:  lineNum,
+				})
+				currentStem = ""
+			}
+
+			var answerText string
+			if strings.Contains(trimmed, "：") {
+				parts := strings.SplitN(trimmed, "：", 2)
+				if len(parts) >= 2 {
+					answerText = strings.TrimSpace(parts[1])
+				}
+			} else if strings.Contains(trimmed, ":") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) >= 2 {
+					answerText = strings.TrimSpace(parts[1])
+				}
+			}
+
+			if answerText != "" {
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeCorrectAnswerMarker,
+					Value: "答案",
+					Line:  lineNum + 1,
+				})
+				p.tokens = append(p.tokens, Token{
+					Type:  TokenTypeCorrectAnswerText,
 					Value: answerText,
 					Line:  lineNum + 1,
 				})
@@ -231,106 +310,123 @@ func (p *Parser) parseOptionsInLine(line string, lineNum int) bool {
 
 	fmt.Printf("DEBUG: parseOptionsInLine called with line: '%s'\n", line)
 
-	// 首先检查这一行是否包含多个选项格式
-	if strings.Contains(line, "A、") && strings.Contains(line, "B、") {
-		fmt.Printf("DEBUG: Found multiple options in line\n")
-
-		// 改进的解析方法：使用字符串包含来查找选项标记
-		markers := []string{}
-		for ch := 'A'; ch <= 'Z'; ch++ {
-			markers = append(markers, string(ch)+"、")
-		}
-		markerPositions := []int{}
-
-		for _, marker := range markers {
-			if pos := strings.Index(line, marker); pos != -1 {
-				markerPositions = append(markerPositions, pos)
-				fmt.Printf("DEBUG: Found marker '%s' at position %d\n", marker, pos)
-			}
-		}
-
-		// 排序位置
-		sort.Ints(markerPositions)
-		fmt.Printf("DEBUG: Found %d option markers at positions: %v\n", len(markerPositions), markerPositions)
-
-		// 解析每个选项
-		for i := 0; i < len(markerPositions); i++ {
-			markerPos := markerPositions[i]
-
-			// 确定标记字符（A、B、C、D）
-			marker := string(line[markerPos])
-
-			// 确定选项文本的开始位置（跳过标记）
-			startPos := markerPos + 2 // "A、"是2个字符
-			endPos := len(line)
-
-			// 如果还有下一个选项，则结束位置为下一个选项的开始
-			if i+1 < len(markerPositions) {
-				endPos = markerPositions[i+1]
-			}
-
-			optionText := strings.TrimSpace(line[startPos:endPos])
-
-			// 清理编码问题
-			if !utf8.ValidString(optionText) {
-				optionText = strings.Map(func(r rune) rune {
-					if r == utf8.RuneError {
-						return -1
-					}
-					return r
-				}, optionText)
-			}
-
-			fmt.Printf("DEBUG: Option %s: '%s' (start:%d, end:%d)\n", marker, optionText, startPos, endPos)
-
-			if optionText != "" {
-				p.tokens = append(p.tokens, Token{
-					Type:  TokenTypeOptionMarker,
-					Value: marker,
-					Line:  lineNum,
-				})
-				p.tokens = append(p.tokens, Token{
-					Type:  TokenTypeOptionText,
-					Value: optionText,
-					Line:  lineNum,
-				})
-			}
-		}
-
-		fmt.Printf("DEBUG: parseOptionsInLine returning %v (added %d tokens)\n", len(p.tokens) > originalLen, len(p.tokens)-originalLen)
-		return len(p.tokens) > originalLen
+	optionMarkers := p.findOptionMarkers(line)
+	if len(optionMarkers) < 2 {
+		fmt.Printf("DEBUG: No multiple options found, trying single option parsing\n")
+		return p.parseSingleOptions(line, lineNum)
 	}
 
-	fmt.Printf("DEBUG: No multiple options found, trying single option parsing\n")
+	fmt.Printf("DEBUG: Found %d option markers\n", len(optionMarkers))
 
-	// 原有的单选项解析逻辑
+	for i := 0; i < len(optionMarkers); i++ {
+		markerInfo := optionMarkers[i]
+		marker := markerInfo.marker
+		startPos := markerInfo.endPos
+		endPos := len(markerInfo.runes)
+
+		if i+1 < len(optionMarkers) {
+			endPos = optionMarkers[i+1].pos
+		}
+
+		optionText := strings.TrimSpace(string(markerInfo.runes[startPos:endPos]))
+
+		if !utf8.ValidString(optionText) {
+			optionText = strings.Map(func(r rune) rune {
+				if r == utf8.RuneError {
+					return -1
+				}
+				return r
+			}, optionText)
+		}
+
+		fmt.Printf("DEBUG: Option %s: '%s'\n", marker, optionText)
+
+		if optionText != "" {
+			p.tokens = append(p.tokens, Token{
+				Type:  TokenTypeOptionMarker,
+				Value: marker,
+				Line:  lineNum,
+			})
+			p.tokens = append(p.tokens, Token{
+				Type:  TokenTypeOptionText,
+				Value: optionText,
+				Line:  lineNum,
+			})
+		}
+	}
+
+	fmt.Printf("DEBUG: parseOptionsInLine returning %v (added %d tokens)\n", len(p.tokens) > originalLen, len(p.tokens)-originalLen)
+	return len(p.tokens) > originalLen
+}
+
+type optionMarkerInfo struct {
+	pos    int
+	endPos int
+	marker string
+	runes  []rune
+}
+
+func (p *Parser) findOptionMarkers(line string) []optionMarkerInfo {
+	markers := []optionMarkerInfo{}
+	runes := []rune(line)
+
+	for i := 0; i < len(runes); i++ {
+		if runes[i] >= 'A' && runes[i] <= 'Z' {
+			marker := string(runes[i])
+			var endPos int
+
+			if i+1 < len(runes) {
+				nextChar := runes[i+1]
+				if nextChar == '、' {
+					endPos = i + 2
+					markers = append(markers, optionMarkerInfo{pos: i, endPos: endPos, marker: marker, runes: runes})
+				} else if nextChar == '.' {
+					endPos = i + 2
+					markers = append(markers, optionMarkerInfo{pos: i, endPos: endPos, marker: marker, runes: runes})
+				} else if nextChar == '．' {
+					endPos = i + 2
+					markers = append(markers, optionMarkerInfo{pos: i, endPos: endPos, marker: marker, runes: runes})
+				}
+			}
+		}
+	}
+
+	return markers
+}
+
+func (p *Parser) parseSingleOptions(line string, lineNum int) bool {
+	originalLen := len(p.tokens)
 	i := 0
-	for i < len(line) {
-		// 查找选项标记（A、B、C等）
-		if i+1 < len(line) && line[i] >= 'A' && line[i] <= 'Z' {
+	runes := []rune(line)
+
+	for i < len(runes) {
+		if runes[i] >= 'A' && runes[i] <= 'Z' {
 			markerLen := 0
-			if line[i+1:i+2] == "、" {
-				markerLen = 2
-			} else if i+2 < len(line) && line[i+1:i+3] == "．" {
-				markerLen = 3 // 全角点号
+			if i+1 < len(runes) {
+				nextChar := runes[i+1]
+				if nextChar == '、' || nextChar == '.' || nextChar == '．' {
+					markerLen = 2
+				}
 			}
 
 			if markerLen > 0 {
-				optionMarker := string(line[i])
+				optionMarker := string(runes[i])
 				optionStart := i + markerLen
-				optionEnd := len(line)
+				optionEnd := len(runes)
 
-				// 查找下一个选项标记
-				for j := optionStart; j < len(line); j++ {
-					if j+1 < len(line) && line[j] >= 'A' && line[j] <= 'Z' {
-						if line[j+1:j+2] == "、" || (j+2 < len(line) && line[j+1:j+3] == "．") {
-							optionEnd = j
-							break
+				for j := optionStart; j < len(runes); j++ {
+					if runes[j] >= 'A' && runes[j] <= 'Z' {
+						if j+1 < len(runes) {
+							nextChar := runes[j+1]
+							if nextChar == '、' || nextChar == '.' || nextChar == '．' {
+								optionEnd = j
+								break
+							}
 						}
 					}
 				}
 
-				optionText := strings.TrimSpace(line[optionStart:optionEnd])
+				optionText := strings.TrimSpace(string(runes[optionStart:optionEnd]))
 				if optionText != "" {
 					p.tokens = append(p.tokens, Token{
 						Type:  TokenTypeOptionMarker,
@@ -351,7 +447,7 @@ func (p *Parser) parseOptionsInLine(line string, lineNum int) bool {
 		i++
 	}
 
-	fmt.Printf("DEBUG: parseOptionsInLine returning %v (added %d tokens)\n", len(p.tokens) > originalLen, len(p.tokens)-originalLen)
+	fmt.Printf("DEBUG: parseSingleOptions returning %v (added %d tokens)\n", len(p.tokens) > originalLen, len(p.tokens)-originalLen)
 	return len(p.tokens) > originalLen
 }
 
@@ -396,40 +492,69 @@ func (p *Parser) parse(text string) ([]Question, error) {
 			currentQuestion.Text = strings.TrimSpace(currentQuestion.Text)
 
 		case TokenTypeOptionMarker:
-			// 选项标记，下一个token应该是选项文本
 			if i+1 < len(p.tokens) && p.tokens[i+1].Type == TokenTypeOptionText {
 				currentQuestion.Options = append(currentQuestion.Options, strings.TrimSpace(p.tokens[i+1].Value))
-				i++ // 跳过下一个token，因为已经处理了
+				i++
 			}
 
-		case TokenTypeAnswerMarker:
-			// 答案标记，下一个token应该是答案文本
-			if i+1 < len(p.tokens) && p.tokens[i+1].Type == TokenTypeAnswerText {
+		case TokenTypeCorrectAnswerMarker:
+			if i+1 < len(p.tokens) && p.tokens[i+1].Type == TokenTypeCorrectAnswerText {
 				answerText := strings.TrimSpace(p.tokens[i+1].Value)
+				fmt.Printf("DEBUG: Processing correct answer text: '%s'\n", answerText)
 
-				fmt.Printf("DEBUG: Processing answer text: '%s'\n", answerText)
-
-				// 处理答案
 				if answerText == "对" || answerText == "错" {
 					currentQuestion.Answer = []string{answerText}
 				} else {
-					// 处理字母答案（A、B、C等）
+					var newAnswers []string
 					for _, ch := range answerText {
 						if ch >= 'A' && ch <= 'Z' {
 							idx := int(ch - 'A')
 							if idx >= 0 && idx < len(currentQuestion.Options) {
-								// 存储选项文本而不是选项字母
-								currentQuestion.Answer = append(currentQuestion.Answer, currentQuestion.Options[idx])
-								fmt.Printf("DEBUG: Added answer text '%s' for option %c\n", currentQuestion.Options[idx], ch)
+								newAnswers = append(newAnswers, currentQuestion.Options[idx])
+								fmt.Printf("DEBUG: Added correct answer text '%s' for option %c\n", currentQuestion.Options[idx], ch)
 							} else {
-								// 如果选项索引超出范围，直接存储字母
-								currentQuestion.Answer = append(currentQuestion.Answer, string(ch))
-								fmt.Printf("DEBUG: Added answer letter '%c' (option index %d out of range)\n", ch, idx)
+								newAnswers = append(newAnswers, string(ch))
+								fmt.Printf("DEBUG: Added correct answer letter '%c' (option index %d out of range)\n", ch, idx)
 							}
 						}
 					}
+					if len(newAnswers) > 0 {
+						currentQuestion.Answer = newAnswers
+					}
 				}
-				i++ // 跳过下一个token，因为已经处理了
+				i++
+			}
+
+		case TokenTypeMyAnswerMarker:
+			if i+1 < len(p.tokens) && p.tokens[i+1].Type == TokenTypeMyAnswerText {
+				if len(currentQuestion.Answer) == 0 {
+					answerText := strings.TrimSpace(p.tokens[i+1].Value)
+					fmt.Printf("DEBUG: Processing my answer text (no correct answer): '%s'\n", answerText)
+
+					if answerText == "对" || answerText == "错" {
+						currentQuestion.Answer = []string{answerText}
+					} else {
+						var newAnswers []string
+						for _, ch := range answerText {
+							if ch >= 'A' && ch <= 'Z' {
+								idx := int(ch - 'A')
+								if idx >= 0 && idx < len(currentQuestion.Options) {
+									newAnswers = append(newAnswers, currentQuestion.Options[idx])
+									fmt.Printf("DEBUG: Added my answer text '%s' for option %c\n", currentQuestion.Options[idx], ch)
+								} else {
+									newAnswers = append(newAnswers, string(ch))
+									fmt.Printf("DEBUG: Added my answer letter '%c' (option index %d out of range)\n", ch, idx)
+								}
+							}
+						}
+						if len(newAnswers) > 0 {
+							currentQuestion.Answer = newAnswers
+						}
+					}
+				} else {
+					fmt.Printf("DEBUG: Skipping my answer, already have correct answer\n")
+				}
+				i++
 			}
 
 		case TokenTypeStatusMarker, TokenTypeStatusText, TokenTypeScoreMarker, TokenTypeScoreText:
