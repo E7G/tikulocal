@@ -262,9 +262,43 @@ func (p *Parser) tokenize(text string) {
 			continue
 		}
 
-		// 检查是否是状态或分数标记
 		if strings.HasPrefix(trimmed, "答案状态") || strings.HasPrefix(trimmed, "得分") {
-			continue // 忽略这些行
+			if strings.Contains(trimmed, "：") {
+				parts := strings.SplitN(trimmed, "：", 2)
+				if len(parts) >= 2 {
+					statusText := strings.TrimSpace(parts[1])
+					if statusText != "" {
+						p.tokens = append(p.tokens, Token{
+							Type:  TokenTypeStatusMarker,
+							Value: strings.TrimSpace(parts[0]),
+							Line:  lineNum + 1,
+						})
+						p.tokens = append(p.tokens, Token{
+							Type:  TokenTypeStatusText,
+							Value: statusText,
+							Line:  lineNum + 1,
+						})
+					}
+				}
+			} else if strings.Contains(trimmed, ":") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) >= 2 {
+					statusText := strings.TrimSpace(parts[1])
+					if statusText != "" {
+						p.tokens = append(p.tokens, Token{
+							Type:  TokenTypeStatusMarker,
+							Value: strings.TrimSpace(parts[0]),
+							Line:  lineNum + 1,
+						})
+						p.tokens = append(p.tokens, Token{
+							Type:  TokenTypeStatusText,
+							Value: statusText,
+							Line:  lineNum + 1,
+						})
+					}
+				}
+			}
+			continue
 		}
 
 		// 其他内容作为题干的一部分累积
@@ -529,26 +563,41 @@ func (p *Parser) parse(text string) ([]Question, error) {
 			if i+1 < len(p.tokens) && p.tokens[i+1].Type == TokenTypeMyAnswerText {
 				if len(currentQuestion.Answer) == 0 {
 					answerText := strings.TrimSpace(p.tokens[i+1].Value)
-					fmt.Printf("DEBUG: Processing my answer text (no correct answer): '%s'\n", answerText)
 
-					if answerText == "对" || answerText == "错" {
-						currentQuestion.Answer = []string{answerText}
-					} else {
-						var newAnswers []string
-						for _, ch := range answerText {
-							if ch >= 'A' && ch <= 'Z' {
-								idx := int(ch - 'A')
-								if idx >= 0 && idx < len(currentQuestion.Options) {
-									newAnswers = append(newAnswers, currentQuestion.Options[idx])
-									fmt.Printf("DEBUG: Added my answer text '%s' for option %c\n", currentQuestion.Options[idx], ch)
-								} else {
-									newAnswers = append(newAnswers, string(ch))
-									fmt.Printf("DEBUG: Added my answer letter '%c' (option index %d out of range)\n", ch, idx)
-								}
+					// 检查下一个token是否是状态信息
+					isCorrect := true
+					if i+2 < len(p.tokens) && p.tokens[i+2].Type == TokenTypeStatusMarker {
+						if i+3 < len(p.tokens) && p.tokens[i+3].Type == TokenTypeStatusText {
+							statusText := strings.TrimSpace(p.tokens[i+3].Value)
+							if statusText == "错误" {
+								isCorrect = false
+								fmt.Printf("DEBUG: Skipping my answer because status is '错误'\n")
 							}
 						}
-						if len(newAnswers) > 0 {
-							currentQuestion.Answer = newAnswers
+					}
+
+					if isCorrect {
+						fmt.Printf("DEBUG: Processing my answer text (no correct answer): '%s'\n", answerText)
+
+						if answerText == "对" || answerText == "错" {
+							currentQuestion.Answer = []string{answerText}
+						} else {
+							var newAnswers []string
+							for _, ch := range answerText {
+								if ch >= 'A' && ch <= 'Z' {
+									idx := int(ch - 'A')
+									if idx >= 0 && idx < len(currentQuestion.Options) {
+										newAnswers = append(newAnswers, currentQuestion.Options[idx])
+										fmt.Printf("DEBUG: Added my answer text '%s' for option %c\n", currentQuestion.Options[idx], ch)
+									} else {
+										newAnswers = append(newAnswers, string(ch))
+										fmt.Printf("DEBUG: Added my answer letter '%c' (option index %d out of range)\n", ch, idx)
+									}
+								}
+							}
+							if len(newAnswers) > 0 {
+								currentQuestion.Answer = newAnswers
+							}
 						}
 					}
 				} else {
