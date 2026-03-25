@@ -2,288 +2,84 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-    outputs:
-      next_release_tag: ${{ steps.generate_release_tag.outputs.next_release_tag }}
-    steps:
-      - name: Generate release tag
-        id: generate_release_tag
-        uses: amitsingh-007/next-release-tag@v6.0.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: "v"
-          tag_template: "yyyy.mm.dd.i"
-
-  build-and-release:
-    needs: prepare
-    permissions:
-      contents: write
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Linux - use wildcard to build all supported architectures
-          - platform: "ubuntu-latest"
-            goos: "linux"
-            goarch: "amd64"
-            binary_name: "tikulocal-linux"
-            package_ext: "tar.gz"
-          
-          # Windows - use wildcard to build all supported architectures
-          - platform: "windows-latest"
-            goos: "windows"
-            goarch: "amd64"
-            binary_name: "tikulocal-windows"
-            package_ext: "exe"
-          
-          # macOS - use wildcard to build all supported architectures
-          - platform: "macos-latest"
-            goos: "darwin"
-            goarch: "arm64"
-            binary_name: "tikulocal-darwin"
-            package_ext: "app.zip"
+          - os: windows-latest
+            artifact_name: tikulocal-windows
 
-    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          go-version: '1.21'
-
-      - name: Install system dependencies (Linux)
-        if: matrix.goos == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y golang gcc libgl1-mesa-dev xorg-dev libxkbcommon-dev
-
-      - name: Install system dependencies (Windows)
-        if: matrix.goos == 'windows'
-        run: |
-          # Install MinGW-w64 for Windows builds
-          choco install mingw -y
-          # Add MinGW to PATH
-          echo "C:\ProgramData\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          
-      # - name: Install Docker (Windows)
-      #   if: matrix.goos == 'windows'
-      #   run: |
-      #     # Install Docker Desktop using Chocolatey
-      #     choco install docker-desktop -y
-
-      - name: Install system dependencies (macOS)
-        if: matrix.goos == 'darwin'
-        run: |
-          # Install Xcode command line tools if not present
-          xcode-select --install || true
-          # Ensure pkg-config is available
-          brew install pkg-config || true
-          
-      # - name: Install Docker (macOS)
-      #   if: matrix.goos == 'darwin'
-      #   run: |
-      #     # Install Docker Desktop using Homebrew
-      #     brew install --cask docker
-
-      - name: Install Fyne tools
-        run: |
-          go install fyne.io/tools/cmd/fyne@latest
-          go install github.com/fyne-io/fyne-cross@latest
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
-          go mod download
-          go mod tidy
+          pip install pyinstaller python-docx qfluentwidgets PyQt5
 
-      - name: Build with Fyne package (Windows)
-        if: matrix.goos == 'windows'
-        shell: cmd
-        run: |
-          echo "Building with Fyne package for Windows..."
-          fyne package -os windows -icon icon.png
-          
-          # Check if the executable was created
-          if exist "tikulocal.exe" (
-            echo "Found fyne package executable: tikulocal.exe"
-            copy "tikulocal.exe" "tikulocal-windows.exe"
-            dir "tikulocal-windows.exe"
-          ) else (
-            echo "ERROR: Windows executable not found!"
-          )
+      - name: Install pip requirements
+        if: hashFiles('requirements.txt') != ''
+        run: pip install -r requirements.txt
 
-      - name: Build with Fyne-cross (Linux)
-        if: matrix.goos == 'linux'
+      - name: Build executable
         run: |
-          echo "Building with Fyne-cross for Linux all architectures..."
-          fyne-cross linux -arch=* -app-id com.tikulocal.app -icon icon.png
-          
-          # Check the fyne-cross output directory structure
-          echo "Checking fyne-cross output directories:"
-          ls -la fyne-cross/ 2>/dev/null || echo "fyne-cross directory not found"
-          ls -la fyne-cross/dist/ 2>/dev/null || echo "fyne-cross/dist directory not found"
-          
-          # List all architecture directories
-          echo "Available architecture directories:"
-          ls -la fyne-cross/dist/linux-* 2>/dev/null || echo "No Linux architecture directories found"
-          
-          # Process each architecture
-          for ARCH_DIR in fyne-cross/dist/linux-*; do
-            if [ -d "$ARCH_DIR" ]; then
-              # Extract architecture name from directory path
-              ARCH=$(basename "$ARCH_DIR" | cut -d'-' -f2)
-              echo "Processing architecture: $ARCH (directory: $ARCH_DIR)"
-              
-              # Look for the output package in fyne-cross/dist directory
-              if [ -f "$ARCH_DIR/tikulocal.tar.xz" ]; then
-                echo "Found fyne-cross package: $ARCH_DIR/tikulocal.tar.xz"
-                
-                # Extract the package to get the binary
-                echo "Extracting package..."
-                cd "$ARCH_DIR"
-                tar -xf tikulocal.tar.xz
-                cd -
-                
-                # Look for the binary in extracted contents
-                if [ -f "$ARCH_DIR/tikulocal" ]; then
-                  echo "Found binary in extracted package"
-                  ls -la "$ARCH_DIR/tikulocal"
-                  
-                  # Create a directory structure for the Linux app
-                  mkdir -p "tikulocal-linux-$ARCH"
-                  
-                  # Copy the binary
-                  cp "$ARCH_DIR/tikulocal" "tikulocal-linux-$ARCH/"
-                  echo "Copied binary to tikulocal-linux-$ARCH/"
-                  
-                  # Copy icon if it exists
-                  cp icon.png "tikulocal-linux-$ARCH/" 2>/dev/null || echo "Icon not found, continuing without it"
-                  
-                  # Create final tar.gz package
-                  tar -czf "tikulocal-linux-$ARCH.tar.gz" "tikulocal-linux-$ARCH/"
-                  echo "Created final package: tikulocal-linux-$ARCH.tar.gz"
-                  
-                else
-                  echo "Binary not found in extracted package, listing contents:"
-                  ls -la "$ARCH_DIR/"
-                  echo "Using the fyne-cross package as-is"
-                  cp "$ARCH_DIR/tikulocal.tar.xz" "tikulocal-linux-$ARCH.tar.xz"
-                  echo "Copied fyne-cross package as tikulocal-linux-$ARCH.tar.xz"
-                fi
-                
-              else
-                echo "WARNING: fyne-cross package not found in $ARCH_DIR"
-              fi
-            fi
-          done
-          
-          # List final files
-          ls -la
-          echo "Created files:"
-          ls -la *.tar.* 2>/dev/null || echo "No tar files found"
+          pyinstaller tikulocal.spec --clean
 
-      - name: Build with Fyne package (macOS)
-        if: matrix.goos == 'darwin'
+      - name: Rename artifact
+        shell: bash
         run: |
-          echo "Building with Fyne package for macOS..."
-          fyne package -os darwin -icon icon.png
-          
-          # Check if the app package was created
-          if [ -d "tikulocal.app" ]; then
-            echo "Found fyne package app: tikulocal.app"
-            zip -r "tikulocal-darwin.app.zip" "tikulocal.app/"
-            echo "Created app zip: tikulocal-darwin.app.zip"
-          else
-            echo "ERROR: macOS app package not found!"
+          cd dist/tikulocal
+          if [ -f tikulocal.exe ]; then
+            mv tikulocal.exe tikulocal-windows.exe
+            ls -la
           fi
 
-
-
-      - name: Create Release and Upload Binary
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ needs.prepare.outputs.next_release_tag }}
-          name: Release ${{ needs.prepare.outputs.next_release_tag }}
-          body: |
-            ## 🎉 TikuLocal ${{ needs.prepare.outputs.next_release_tag }}
-            
-            题库管理系统的最新版本发布！
-            
-            ### 📦 下载说明
-            请根据您的操作系统和架构选择对应的版本下载：
-            
-            **支持的架构：**
-            - **Windows**: amd64, 386, arm64
-            - **Linux**: amd64, 386, arm, arm64  
-            - **macOS**: amd64 (Intel), arm64 (Apple Silicon)
-            
-            **文件格式：**
-            - **Windows**: `.exe` (带图标的可执行文件)
-            - **Linux**: `.tar.gz` 或 `.tar.xz` (包含图标的应用程序包)
-            - **macOS**: `.app.zip` (带图标的应用包)
-            
-            ### 🚀 快速开始
-            1. 下载对应平台和架构的应用程序包
-            2. **Windows**: 直接运行 `.exe` 文件
-            3. **Linux**: 解压 `tar.gz` 或 `tar.xz` 文件并运行其中的应用程序
-            4. **macOS**: 解压 `.app.zip` 并将应用拖到 Applications 文件夹
-            5. 访问 Web 界面：`http://localhost:8080`
-            6. 拖放 DOCX 文件开始导入题目
-            
-            ### 📋 功能特性
-            - ✅ DOCX 文档解析
-            - ✅ 多架构支持（x86_64, ARM, 386等）
-            - ✅ 跨平台GUI应用
-            - ✅ Web界面管理
-            - ✅ 题目搜索和管理
-            - ✅ Web API 接口
-            - ✅ 图形界面 (GUI)
-            - ✅ 多平台支持
-            - ✅ 原生应用图标
-            
-            ### 📝 使用说明
-            详细使用说明请参考 [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)
-            
-            ### 🐛 问题反馈
-            如遇到问题，请在 [Issues](https://github.com/${{ github.repository }}/issues) 页面提交反馈。
-          draft: false
-          prerelease: false
-          files: |
-            ${{ matrix.binary_name }}*.*
+          name: ${{ matrix.artifact_name }}
+          path: dist/tikulocal/tikulocal-windows.exe
+          if-no-files-found: error
 
-  test:
+  release:
+    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          go-version: '1.21'
+          path: artifacts
 
-      - name: Install dependencies
+      - name: Display structure of downloaded files
         run: |
-          go mod download
-          go mod tidy
+          find artifacts -type f -ls
 
-      - name: Run tests
+      - name: Prepare files for release
         run: |
-          # Copy test files to main directory to run tests
-          cp test/verify_fix.go verify_fix_temp.go
-          go run verify_fix_temp.go parser.go models.go
-          rm verify_fix_temp.go
-          
-          cp test/test_parser.go test_parser_temp.go
-          go run test_parser_temp.go parser.go models.go
-          rm test_parser_temp.go
+          mkdir -p release
+          cp -r artifacts/*/* release/ 2>/dev/null || true
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,2 +1,21 @@
 tikulocal.exe
 tiku.db
+/ref
+node_modules/
+dist/
+build/
+target/
+Cargo.lock
+*.log
+.DS_Store
+Thumbs.db
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.spec
