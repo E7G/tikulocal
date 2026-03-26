@@ -5,7 +5,7 @@ import os
 import re
 import threading
 import string
-from bottle import Bottle, request, response, run
+from flask import Flask, request, jsonify
 from docx import Document
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QStackedWidget, QTableWidgetItem, QFileDialog)
@@ -841,7 +841,7 @@ class TikuApp(FluentWindow):
         )
     
     def start_http_server(self):
-        app = Bottle()
+        app = Flask(__name__)
         app_instance = self
         
         chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
@@ -852,7 +852,6 @@ class TikuApp(FluentWindow):
         
         @app.route('/')
         def index():
-            response.content_type = 'text/html'
             return '''<html><head><title>题库适配器 API</title></head>
             <body><h1>题库适配器 API</h1>
             <p>使用 POST 请求访问 /adapter-service/search 端点</p></body></html>'''
@@ -860,13 +859,15 @@ class TikuApp(FluentWindow):
         @app.route('/adapter-service')
         @app.route('/adapter-service/')
         def adapter_status():
-            response.content_type = 'application/json'
-            return '{"status": "ok"}'
+            return jsonify({"status": "ok"})
         
-        @app.route('/adapter-service/search', method='POST')
+        @app.route('/adapter-service/search', methods=['POST'])
         def search():
             try:
-                request_data = request.json
+                request_data = request.get_json(force=True, silent=True)
+                if request_data is None:
+                    return jsonify({"error": "Invalid JSON data"}), 400
+                
                 question = request_data.get('question', '')
                 options = request_data.get('options', [])
                 type_ = request_data.get('type', 0)
@@ -917,8 +918,7 @@ class TikuApp(FluentWindow):
                 results = [r[1] for r in scored_results[:10]]
                 
                 if not results:
-                    response.content_type = 'application/json'
-                    return json.dumps({
+                    return jsonify({
                         "plat": 0,
                         "question": question,
                         "options": options,
@@ -946,22 +946,19 @@ class TikuApp(FluentWindow):
                 
                 answer = app_instance.build_answer(answer_text, db_options, db_type)
                 
-                response.content_type = 'application/json'
-                return json.dumps({
+                return jsonify({
                     "plat": 0,
                     "question": question_text,
                     "options": db_options,
                     "type": db_type,
                     "answer": answer
-                }, ensure_ascii=False)
+                })
                 
             except Exception as e:
-                response.status = 500
-                response.content_type = 'application/json'
-                return json.dumps({"error": str(e)})
+                return jsonify({"error": str(e)}), 500
         
         def run_server():
-            run(app, host='localhost', port=8060, quiet=True)
+            app.run(host='localhost', port=8060, threaded=True, use_reloader=False)
         
         server_thread = threading.Thread(target=run_server)
         server_thread.daemon = True

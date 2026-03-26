@@ -29,12 +29,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pyinstaller python-docx PyQt5 Pillow bottle
+          pip install pyinstaller python-docx PyQt5 Pillow flask
           pip install PyQt-Fluent-Widgets
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL --hidden-import=bottle --hidden-import=threading --hidden-import=sqlite3 --hidden-import=json --hidden-import=re main.py
+          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL --hidden-import=flask --hidden-import=werkzeug --hidden-import=werkzeug.serving --hidden-import=threading --hidden-import=sqlite3 --hidden-import=json --hidden-import=re main.py
 
       - name: Automatic Releases
         uses: marvinpinto/action-automatic-releases@latest
