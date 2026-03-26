@@ -502,6 +502,7 @@ class TikuApp(FluentWindow):
             return
         
         type_map = {'全部类型': -1, '单选题': 0, '多选题': 1, '填空题': 2, '判断题': 3, '问答题': 4}
+        type_text_map = {0: '单选题', 1: '多选题', 2: '填空题', 3: '判断题', 4: '问答题'}
         type_ = type_map.get(type_text, -1)
         
         clean_search = remove_punctuation(question_text)
@@ -535,36 +536,38 @@ class TikuApp(FluentWindow):
                 if clean_search in db_search_options:
                     results.append(q)
                     continue
-            
-            if len(results) >= 5:
-                break
         
         if not results:
             result_widget.setText("未找到相关题目")
             return
         
-        best_match = results[0]
-        question = best_match[0]
-        options_json = best_match[1]
-        db_type = best_match[2]
-        answer_text = best_match[3]
+        output_lines = []
+        output_lines.append(f"共找到 {len(results)} 道相关题目：")
+        output_lines.append("")
         
-        try:
-            options = json.loads(options_json) if options_json else []
-        except:
-            options = []
+        for i, r in enumerate(results, 1):
+            question = r[0]
+            options_json = r[1]
+            db_type = r[2]
+            answer_text = r[3]
+            
+            try:
+                options = json.loads(options_json) if options_json else []
+            except:
+                options = []
+            
+            output_lines.append(f"【{i}】{type_text_map.get(db_type, '未知题型')} - 答案：{answer_text}")
+            output_lines.append(f"题目：{question}")
+            
+            if options:
+                output_lines.append("选项：")
+                for j, opt in enumerate(options):
+                    label = chr(65 + j) if j < 26 else str(j)
+                    output_lines.append(f"  {label}. {opt}")
+            
+            output_lines.append("")
         
-        answer = self.build_answer(answer_text, options, db_type)
-        
-        response = {
-            "plat": 0,
-            "question": question,
-            "options": options,
-            "type": db_type,
-            "answer": answer
-        }
-        
-        result_widget.setText(json.dumps(response, ensure_ascii=False, indent=2))
+        result_widget.setText("\n".join(output_lines))
     
     def browse_file(self, type_text, path_widget):
         if 'Word' in type_text:
@@ -710,6 +713,19 @@ class TikuApp(FluentWindow):
                 answer["bestAnswer"] = [answer_text]
                 answer["allAnswer"] = [[answer_text]]
         
+        elif question_type == 3:
+            answer["answerKey"] = [answer_text] if answer_text in ['对', '错', '正确', '错误', 'A', 'B'] else []
+            answer["answerKeyText"] = answer["answerKey"][0] if answer["answerKey"] else ''
+            
+            if answer_text in ['对', '正确', 'A']:
+                answer["answerIndex"] = [0] if len(options) > 0 else []
+                answer["bestAnswer"] = [options[0]] if len(options) > 0 else ['对']
+                answer["allAnswer"] = [answer["bestAnswer"]]
+            elif answer_text in ['错', '错误', 'B']:
+                answer["answerIndex"] = [1] if len(options) > 1 else []
+                answer["bestAnswer"] = [options[1]] if len(options) > 1 else ['错']
+                answer["allAnswer"] = [answer["bestAnswer"]]
+        
         return answer
     
     def refresh_question_list(self, table, total_card, single_card, multi_card, judge_card):
@@ -842,6 +858,7 @@ class TikuApp(FluentWindow):
                         type_ = request_data.get('type', 0)
                         
                         clean_question = remove_punctuation(question)
+                        clean_options = [remove_punctuation(opt) for opt in options]
                         
                         conn = sqlite3.connect("tiku.db")
                         cursor = conn.cursor()
@@ -853,27 +870,37 @@ class TikuApp(FluentWindow):
                         all_questions = cursor.fetchall()
                         conn.close()
                         
-                        clean_search = remove_punctuation(clean_question)
-                        
-                        results = []
+                        scored_results = []
                         for q in all_questions:
                             db_question = q[0]
                             db_search_question = q[4]
                             db_search_options = q[5] if len(q) > 5 else ''
                             
-                            if db_search_question and (clean_search in db_search_question or db_search_question in clean_search):
-                                results.append(q)
-                                continue
+                            score = 0
                             
-                            if db_search_options:
-                                for opt in options:
-                                    clean_opt = remove_punctuation(opt)
-                                    if clean_opt and clean_opt in db_search_options:
-                                        results.append(q)
-                                        break
+                            if db_search_question:
+                                if clean_question == db_search_question:
+                                    score += 100
+                                elif clean_question in db_search_question or db_search_question in clean_question:
+                                    score += 50
+                                
+                                if clean_options and db_search_options:
+                                    option_matches = 0
+                                    for clean_opt in clean_options:
+                                        if clean_opt and clean_opt in db_search_options:
+                                            option_matches += 1
+                                    
+                                    if option_matches == len(clean_options) and len(clean_options) > 0:
+                                        score += 50
+                                    elif option_matches > 0:
+                                        score += option_matches * 10
                             
-                            if len(results) >= 5:
-                                break
+                            if score > 0:
+                                scored_results.append((score, q))
+                        
+                        scored_results.sort(key=lambda x: x[0], reverse=True)
+                        
+                        results = [r[1] for r in scored_results[:10]]
                         
                         if not results:
                             self.send_response(200)
