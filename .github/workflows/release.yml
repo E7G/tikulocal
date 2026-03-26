@@ -18,6 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get current time
+        id: time
+        run: echo "time=$(date +'%Y%m%d%H%M%S')" >> $env:GITHUB_OUTPUT
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -36,7 +40,7 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: latest
+          automatic_release_tag: v${{ steps.time.outputs.time }}
           prerelease: false
-          title: tikulocal Latest Release
+          title: tikulocal v${{ steps.time.outputs.time }}
           files: dist/tikulocal.exe
