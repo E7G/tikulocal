@@ -30,8 +30,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller tikulocal.spec --clean
-          mv dist/tikulocal/tikulocal.exe dist/tikulocal/tikulocal-windows.exe
+          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL main.py
 
       - name: Automatic Releases
         uses: marvinpinto/action-automatic-releases@latest
@@ -40,4 +39,4 @@ jobs:
           automatic_release_tag: latest
           prerelease: false
           title: tikulocal Latest Release
-          files: dist/tikulocal/tikulocal-windows.exe
+          files: dist/tikulocal.exe
