@@ -4,7 +4,8 @@ import sqlite3
 import os
 import re
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import string
+from bottle import Bottle, request, response, run
 from docx import Document
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QStackedWidget, QTableWidgetItem, QFileDialog)
@@ -840,7 +841,8 @@ class TikuApp(FluentWindow):
         )
     
     def start_http_server(self):
-        import string
+        app = Bottle()
+        app_instance = self
         
         chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
         all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
@@ -848,171 +850,120 @@ class TikuApp(FluentWindow):
         def remove_punctuation(text):
             return text.translate(str.maketrans('', '', all_punctuation))
         
-        class RequestHandler(BaseHTTPRequestHandler):
-            def do_POST(self):
-                path = self.path.split('?')[0]
-                if path == '/adapter-service/search':
-                    content_length = int(self.headers['Content-Length'])
-                    post_data = self.rfile.read(content_length)
+        @app.route('/')
+        def index():
+            response.content_type = 'text/html'
+            return '''<html><head><title>题库适配器 API</title></head>
+            <body><h1>题库适配器 API</h1>
+            <p>使用 POST 请求访问 /adapter-service/search 端点</p></body></html>'''
+        
+        @app.route('/adapter-service')
+        @app.route('/adapter-service/')
+        def adapter_status():
+            response.content_type = 'application/json'
+            return '{"status": "ok"}'
+        
+        @app.route('/adapter-service/search', method='POST')
+        def search():
+            try:
+                request_data = request.json
+                question = request_data.get('question', '')
+                options = request_data.get('options', [])
+                type_ = request_data.get('type', 0)
+                
+                clean_question = remove_punctuation(question)
+                clean_options = [remove_punctuation(opt) for opt in options]
+                
+                conn = sqlite3.connect(app_instance.db_path)
+                cursor = conn.cursor()
+                
+                cursor.execute(
+                    "SELECT question, options, type, answer, search_question, search_options FROM questions"
+                )
+                
+                all_questions = cursor.fetchall()
+                conn.close()
+                
+                scored_results = []
+                for q in all_questions:
+                    db_question = q[0]
+                    db_search_question = q[4]
+                    db_search_options = q[5] if len(q) > 5 else ''
                     
-                    try:
-                        request_data = json.loads(post_data)
-                        question = request_data.get('question', '')
-                        options = request_data.get('options', [])
-                        type_ = request_data.get('type', 0)
+                    score = 0
+                    
+                    if db_search_question:
+                        if clean_question == db_search_question:
+                            score += 100
+                        elif clean_question in db_search_question or db_search_question in clean_question:
+                            score += 50
                         
-                        clean_question = remove_punctuation(question)
-                        clean_options = [remove_punctuation(opt) for opt in options]
-                        
-                        conn = sqlite3.connect(self.server.app.db_path)
-                        cursor = conn.cursor()
-                        
-                        cursor.execute(
-                            "SELECT question, options, type, answer, search_question, search_options FROM questions"
-                        )
-                        
-                        all_questions = cursor.fetchall()
-                        conn.close()
-                        
-                        scored_results = []
-                        for q in all_questions:
-                            db_question = q[0]
-                            db_search_question = q[4]
-                            db_search_options = q[5] if len(q) > 5 else ''
+                        if clean_options and db_search_options:
+                            option_matches = 0
+                            for clean_opt in clean_options:
+                                if clean_opt and clean_opt in db_search_options:
+                                    option_matches += 1
                             
-                            score = 0
-                            
-                            if db_search_question:
-                                if clean_question == db_search_question:
-                                    score += 100
-                                elif clean_question in db_search_question or db_search_question in clean_question:
-                                    score += 50
-                                
-                                if clean_options and db_search_options:
-                                    option_matches = 0
-                                    for clean_opt in clean_options:
-                                        if clean_opt and clean_opt in db_search_options:
-                                            option_matches += 1
-                                    
-                                    if option_matches == len(clean_options) and len(clean_options) > 0:
-                                        score += 50
-                                    elif option_matches > 0:
-                                        score += option_matches * 10
-                            
-                            if score > 0:
-                                scored_results.append((score, q))
-                        
-                        scored_results.sort(key=lambda x: x[0], reverse=True)
-                        
-                        results = [r[1] for r in scored_results[:10]]
-                        
-                        if not results:
-                            self.send_response(200)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            self.wfile.write(json.dumps({
-                                "plat": 0,
-                                "question": question,
-                                "options": options,
-                                "type": type_,
-                                "answer": {
-                                    "answerKey": [],
-                                    "answerKeyText": "",
-                                    "answerIndex": [],
-                                    "answerText": "",
-                                    "bestAnswer": [],
-                                    "allAnswer": []
-                                }
-                            }).encode('utf-8'))
-                            return
-                        
-                        best_match = results[0]
-                        question_text = best_match[0]
-                        options_json = best_match[1]
-                        db_type = best_match[2]
-                        answer_text = best_match[3]
-                        
-                        try:
-                            db_options = json.loads(options_json) if options_json else []
-                        except:
-                            db_options = []
-                        
-                        answer = self.server.app.build_answer(answer_text, db_options, db_type)
-                        
-                        response = {
-                            "plat": 0,
-                            "question": question_text,
-                            "options": db_options,
-                            "type": db_type,
-                            "answer": answer
+                            if option_matches == len(clean_options) and len(clean_options) > 0:
+                                score += 50
+                            elif option_matches > 0:
+                                score += option_matches * 10
+                    
+                    if score > 0:
+                        scored_results.append((score, q))
+                
+                scored_results.sort(key=lambda x: x[0], reverse=True)
+                
+                results = [r[1] for r in scored_results[:10]]
+                
+                if not results:
+                    response.content_type = 'application/json'
+                    return json.dumps({
+                        "plat": 0,
+                        "question": question,
+                        "options": options,
+                        "type": type_,
+                        "answer": {
+                            "answerKey": [],
+                            "answerKeyText": "",
+                            "answerIndex": [],
+                            "answerText": "",
+                            "bestAnswer": [],
+                            "allAnswer": []
                         }
-                        
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-                        
-                    except Exception as e:
-                        self.send_response(500)
-                        self.send_header('Content-type', 'application/json')
-                        self.end_headers()
-                        self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
-                else:
-                    self.send_response(404)
-                    self.send_header('Content-type', 'text/plain')
-                    self.end_headers()
-                    self.wfile.write(b'404 Not Found')
-            
-            def do_GET(self):
-                path = self.path.split('?')[0]
-                if path == '/':
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.end_headers()
-                    html = '''<html><head><title>题库适配器 API</title></head>
-                    <body><h1>题库适配器 API</h1>
-                    <p>使用 POST 请求访问 /adapter-service/search 端点</p></body></html>'''
-                    self.wfile.write(html.encode('utf-8'))
-                elif path.startswith('/adapter-service'):
-                    response_body = b'{"status": "ok"}'
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Content-Length', str(len(response_body)))
-                    self.end_headers()
-                    self.wfile.write(response_body)
-                else:
-                    self.send_response(404)
-                    self.send_header('Content-type', 'text/plain')
-                    self.end_headers()
-            
-            def do_HEAD(self):
-                path = self.path.split('?')[0]
-                if path == '/':
-                    html = '''<html><head><title>题库适配器 API</title></head>
-                    <body><h1>题库适配器 API</h1>
-                    <p>使用 POST 请求访问 /adapter-service/search 端点</p></body></html>'''
-                    self.send_response(200)
-                    self.send_header('Content-type', 'text/html')
-                    self.send_header('Content-Length', str(len(html)))
-                    self.end_headers()
-                    self.wfile.write(html.encode('utf-8'))
-                elif path.startswith('/adapter-service'):
-                    response_body = b'{"status": "ok"}'
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Content-Length', str(len(response_body)))
-                    self.end_headers()
-                    self.wfile.write(response_body)
-                else:
-                    self.send_response(404)
-                    self.send_header('Content-type', 'text/plain')
-                    self.send_header('Content-Length', '0')
-                    self.end_headers()
+                    })
+                
+                best_match = results[0]
+                question_text = best_match[0]
+                options_json = best_match[1]
+                db_type = best_match[2]
+                answer_text = best_match[3]
+                
+                try:
+                    db_options = json.loads(options_json) if options_json else []
+                except:
+                    db_options = []
+                
+                answer = app_instance.build_answer(answer_text, db_options, db_type)
+                
+                response.content_type = 'application/json'
+                return json.dumps({
+                    "plat": 0,
+                    "question": question_text,
+                    "options": db_options,
+                    "type": db_type,
+                    "answer": answer
+                }, ensure_ascii=False)
+                
+            except Exception as e:
+                response.status = 500
+                response.content_type = 'application/json'
+                return json.dumps({"error": str(e)})
         
-        server = HTTPServer(('localhost', 8060), RequestHandler)
-        server.app = self
+        def run_server():
+            run(app, host='localhost', port=8060, quiet=True)
         
-        server_thread = threading.Thread(target=server.serve_forever)
+        server_thread = threading.Thread(target=run_server)
         server_thread.daemon = True
         server_thread.start()
         print("HTTP 服务器已启动，监听端口 8060")
