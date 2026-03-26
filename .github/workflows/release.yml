@@ -34,7 +34,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL main.py
+          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL --hidden-import=http --hidden-import=http.server --hidden-import=socketserver --hidden-import=threading --hidden-import=sqlite3 --hidden-import=json --hidden-import=re main.py
 
       - name: Automatic Releases
         uses: marvinpinto/action-automatic-releases@latest

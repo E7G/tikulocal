@@ -424,7 +424,11 @@ class TikuApp(FluentWindow):
         self.setWindowTitle("题库适配器")
         self.resize(1000, 750)
         
-        self.db_path = "tiku.db"
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(base_path, "tiku.db")
         self.init_database()
         
         self.search_page = SearchPage(self)
@@ -860,7 +864,7 @@ class TikuApp(FluentWindow):
                         clean_question = remove_punctuation(question)
                         clean_options = [remove_punctuation(opt) for opt in options]
                         
-                        conn = sqlite3.connect("tiku.db")
+                        conn = sqlite3.connect(self.server.app.db_path)
                         cursor = conn.cursor()
                         
                         cursor.execute(
