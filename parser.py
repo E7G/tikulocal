@@ -213,7 +213,7 @@ class QuestionParser:
         return options
     
     def _match_question_header(self, text: str) -> Optional[re.Match]:
-        return re.match(r'^(\d+)\s+【(.+题)】$', text)
+        return re.match(r'^(\d+)[.、．]\s*【(.+题)】$', text)
     
     def _match_option(self, text: str) -> Optional[re.Match]:
         return re.match(r'^([A-Z])、\s*(.+)$', text)
@@ -248,4 +248,6 @@ class QuestionParser:
     
     def _finalize_question(self, question: Question, options: List[str]):
         question.options = options
+        if question.answer is None and question.answer_status == "正确" and question.my_answer:
+            question.answer = question.my_answer
         self.questions.append(question)
