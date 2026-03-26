@@ -1,2 +1,4 @@
-tkinter
 python-docx
+PyQt5
+PyQt-Fluent-Widgets
+pyinstaller

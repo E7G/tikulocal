@@ -8,13 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            artifact_name: tikulocal-windows
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -29,57 +23,15 @@ jobs:
           pip install pyinstaller python-docx PyQt5
           pip install PyQt-Fluent-Widgets
 
-      - name: Install pip requirements
-        if: hashFiles('requirements.txt') != ''
-        run: pip install -r requirements.txt
-
       - name: Build executable
         run: |
           pyinstaller tikulocal.spec --clean
-
-      - name: Rename artifact
-        shell: bash
-        run: |
-          cd dist/tikulocal
-          if [ -f tikulocal.exe ]; then
-            mv tikulocal.exe tikulocal-windows.exe
-            ls -la
-          fi
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/tikulocal/tikulocal-windows.exe
-          if-no-files-found: error
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Display structure of downloaded files
-        run: |
-          find artifacts -type f -ls
-
-      - name: Prepare files for release
-        run: |
-          mkdir -p release
-          cp -r artifacts/*/* release/ 2>/dev/null || true
-          ls -la release/
+          mv dist/tikulocal/tikulocal.exe dist/tikulocal/tikulocal-windows.exe
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/*
+          files: dist/tikulocal/tikulocal-windows.exe
           draft: false
           prerelease: false
         env:
