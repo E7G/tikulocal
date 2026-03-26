@@ -1,10 +1,13 @@
-name: Build and Release
+name: Auto Build and Release
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -25,30 +28,16 @@ jobs:
           pip install pyinstaller python-docx PyQt5 Pillow
           pip install PyQt-Fluent-Widgets
 
-      - name: Determine version
-        id: version
-        run: |
-          $version = Get-Date -Format "yyyy.MM.dd-HHmmss"
-          echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          git tag "v$version"
-
-      - name: Push tag
-        run: |
-          git push origin "v${{ env.VERSION }}"
-
       - name: Build executable
         run: |
           pyinstaller tikulocal.spec --clean
           mv dist/tikulocal/tikulocal.exe dist/tikulocal/tikulocal-windows.exe
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
+      - name: Automatic Releases
+        uses: marvinpinto/action-automatic-releases@latest
         with:
-          files: dist/tikulocal/tikulocal-windows.exe
-          draft: false
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: latest
           prerelease: false
-          tag_name: "v${{ env.VERSION }}"
-          name: "tikulocal ${{ env.VERSION }}"
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          title: tikulocal Latest Release
+          files: dist/tikulocal/tikulocal-windows.exe
