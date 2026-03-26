@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pyinstaller python-docx PyQt5
+          pip install pyinstaller python-docx PyQt5 Pillow
           pip install PyQt-Fluent-Widgets
 
       - name: Build executable
