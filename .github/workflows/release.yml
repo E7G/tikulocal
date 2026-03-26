@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -23,6 +23,12 @@ jobs:
           pip install pyinstaller python-docx PyQt5 Pillow
           pip install PyQt-Fluent-Widgets
 
+      - name: Get version
+        id: version
+        run: |
+          $date = Get-Date -Format "yyyyMMdd-HHmmss"
+          echo "version=$date" >> $env:GITHUB_OUTPUT
+
       - name: Build executable
         run: |
           pyinstaller tikulocal.spec --clean
@@ -34,5 +40,6 @@ jobs:
           files: dist/tikulocal/tikulocal-windows.exe
           draft: false
           prerelease: false
+          release_name: tikulocal v${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
