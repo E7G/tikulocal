@@ -22,19 +22,28 @@ jobs:
         id: time
         run: echo "time=$(date +'%Y%m%d%H%M%S')" >> $env:GITHUB_OUTPUT
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.10'
+          node-version: '20'
+          cache: 'pnpm'
 
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller python-docx PyQt5 Pillow bottle
-          pip install PyQt-Fluent-Widgets
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '9'
 
-      - name: Build executable
-        run: |
-          pyinstaller --onefile --windowed --name tikulocal --icon=icon.png --add-data "icon.png;." --hidden-import=qfluentwidgets --hidden-import=qfluentwidgets.common --hidden-import=qfluentwidgets.components --hidden-import=qfluentwidgets.components.widgets --hidden-import=PyQt5.sip --hidden-import=docx --hidden-import=docx.shared --hidden-import=docx.enum --hidden-import=lxml --hidden-import=lxml.etree --hidden-import=PIL --hidden-import=bottle --hidden-import=threading --hidden-import=sqlite3 --hidden-import=json --hidden-import=re main.py
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: llvm-tools-lto
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Tauri app
+        run: pnpm tauri build
 
       - name: Automatic Releases
         uses: marvinpinto/action-automatic-releases@latest
@@ -43,4 +52,4 @@ jobs:
           automatic_release_tag: v${{ steps.time.outputs.time }}
           prerelease: false
           title: tikulocal v${{ steps.time.outputs.time }}
-          files: dist/tikulocal.exe
+          files: src-tauri/target/release/bundle/nsis/*.exe

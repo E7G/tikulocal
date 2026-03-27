@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>题库适配器</title>
+  <link rel="stylesheet" href="/src/styles.css">
+  <script type="module" src="/src/main.ts" defer></script>
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar">
+      <div class="logo">题库适配器</div>
+      <div class="nav-items">
+        <button class="nav-item active" data-page="search">
+          <span class="icon">🔍</span>
+          <span>搜索题目</span>
+        </button>
+        <button class="nav-item" data-page="import">
+          <span class="icon">📥</span>
+          <span>导入题库</span>
+        </button>
+        <button class="nav-item" data-page="manage">
+          <span class="icon">📋</span>
+          <span>题库管理</span>
+        </button>
+      </div>
+      <div class="server-status">
+        <span class="dot"></span>
+        <span>HTTP服务: 8060</span>
+      </div>
+    </nav>
+
+    <main class="content">
+      <!-- 搜索页面 -->
+      <section id="page-search" class="page active">
+        <h1>搜索题目</h1>
+        <p class="subtitle">输入题目关键词，快速查找答案</p>
+        
+        <div class="card">
+          <div class="form-group">
+            <label>题目内容</label>
+            <input type="text" id="search-question" placeholder="请输入题目关键词...">
+          </div>
+          <div class="form-group">
+            <label>题目类型</label>
+            <select id="search-type">
+              <option value="-1">全部类型</option>
+              <option value="0">单选题</option>
+              <option value="1">多选题</option>
+              <option value="2">填空题</option>
+              <option value="3">判断题</option>
+              <option value="4">问答题</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="btn-search">开始搜索</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>搜索结果</h3>
+          <div id="search-results" class="results"></div>
+        </div>
+      </section>
+
+      <!-- 导入页面 -->
+      <section id="page-import" class="page">
+        <h1>导入题库</h1>
+        <p class="subtitle">支持Word文档和JSON格式导入，可拖拽文件到此处</p>
+        
+        <div class="card">
+          <div class="form-group">
+            <label>导入方式</label>
+            <select id="import-type">
+              <option value="docx">Word文档 (.docx)</option>
+              <option value="json">JSON文件 (.json)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>文件路径</label>
+            <div class="input-row">
+              <input type="text" id="import-path" placeholder="请选择文件..." readonly>
+              <button class="btn" id="btn-browse">浏览...</button>
+            </div>
+          </div>
+          <div id="drop-zone" class="drop-zone">
+            <div class="drop-zone-content">
+              <span class="drop-icon">📁</span>
+              <span>拖拽文件到此处</span>
+              <span class="drop-hint">支持 .docx 和 .json 文件</span>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" id="btn-import">开始导入</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>导入结果</h3>
+          <div id="import-results" class="results"></div>
+        </div>
+      </section>
+
+      <!-- 管理页面 -->
+      <section id="page-manage" class="page">
+        <h1>题库管理</h1>
+        <p class="subtitle">查看、删除和管理已导入的题目</p>
+        
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">总题数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-single">0</div>
+            <div class="stat-label">单选题</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-multi">0</div>
+            <div class="stat-label">多选题</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-judge">0</div>
+            <div class="stat-label">判断题</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-actions">
+            <button class="btn" id="btn-refresh">刷新列表</button>
+            <button class="btn" id="btn-delete">删除选中</button>
+            <button class="btn danger" id="btn-clear">清空题库</button>
+          </div>
+          <div class="table-wrapper">
+            <table id="questions-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="select-all"></th>
+                  <th>ID</th>
+                  <th>题目内容</th>
+                  <th>题型</th>
+                  <th>答案</th>
+                  <th>导入时间</th>
+                </tr>
+              </thead>
+              <tbody id="questions-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

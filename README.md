@@ -1,6 +1,6 @@
 # 题库适配器 - 本地版
 
-基于 PyQt5 和 qfluentwidgets 构建的现代化本地题库管理系统。
+基于 Tauri 2.0 和 TypeScript 构建的现代化本地题库管理系统。
 
 ## 功能特性
 
@@ -13,25 +13,36 @@
 
 ## 技术栈
 
-- Python 3.10+
-- PyQt5 + qfluentwidgets（Fluent Design UI）
+- Tauri 2.0（Rust 后端 + Web 前端）
+- TypeScript + Vite（前端）
 - SQLite（本地数据库）
-- python-docx（Word 文档解析）
-- PyInstaller（打包发布）
+- zip + regex（Word 文档解析）
+- Warp（HTTP 服务器）
 
 ## 快速开始
 
-### 使用 pixi（推荐）
+### 前置要求
+
+- Node.js 18+
+- pnpm 8+
+- Rust 1.70+
+
+### 安装依赖
 
 ```bash
-pixi run start
+pnpm install
 ```
 
-### 使用 pip
+### 开发模式
 
 ```bash
-pip install -r requirements.txt
-python main.py
+pnpm tauri dev
+```
+
+### 构建发布
+
+```bash
+pnpm tauri build
 ```
 
 ## 功能介绍
@@ -40,7 +51,7 @@ python main.py
 
 支持两种导入方式：
 
-**Word 文档导入**：
+**拖拽导入**：
 - 支持拖拽文件到导入区域
 - 支持批量拖入多个文件
 - 自动识别文件类型（.docx 或 .json）
@@ -151,36 +162,28 @@ SQLite 数据库 `tiku.db`，包含以下字段：
 | search_options | 搜索用选项（去标点） |
 | created_at | 创建时间 |
 
-## 打包发布
-
-使用 PyInstaller 打包：
-
-```bash
-pip install pyinstaller
-pyinstaller tikulocal.spec
-```
-
-或使用 GitHub Actions 自动发布（推送 v* 标签触发）：
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
 ## 项目结构
 
 ```
 tikulocal/
-├── main.py              # 主程序入口
-├── parser.py            # Word 文档解析器
-├── requirements.txt      # Python 依赖
-├── pixi.toml            # pixi 配置
-├── tikulocal.spec       # PyInstaller 配置
-├── icon.png             # 应用图标
-├── README.md            # 说明文档
-└── .github/
-    └── workflows/
-        └── release.yml  # GitHub Actions 发布流程
+├── src/                    # TypeScript 前端源码
+│   ├── main.ts
+│   └── styles.css
+├── src-tauri/              # Rust 后端源码
+│   ├── src/
+│   │   ├── main.rs         # 主程序入口
+│   │   ├── lib.rs          # 库入口
+│   │   ├── db.rs           # 数据库操作
+│   │   ├── parser.rs       # Word 文档解析器
+│   │   └── server.rs       # HTTP API 服务器
+│   ├── Cargo.toml          # Rust 依赖
+│   └── tauri.conf.json     # Tauri 配置
+├── index.html              # HTML 入口
+├── package.json            # Node.js 依赖
+├── pnpm-lock.yaml          # pnpm 锁定文件
+├── tsconfig.json           # TypeScript 配置
+├── vite.config.ts          # Vite 配置
+└── README.md               # 说明文档
 ```
 
 ## License

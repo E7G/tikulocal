@@ -9,12 +9,5 @@ Cargo.lock
 *.log
 .DS_Store
 Thumbs.db
-# pixi environments
 .pixi/*
 !.pixi/config.toml
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
