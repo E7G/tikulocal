@@ -718,6 +718,16 @@ class TikuApp(FluentWindow):
                 answer["bestAnswer"] = [answer_text]
                 answer["allAnswer"] = [[answer_text]]
         
+        elif question_type == 2:
+            if '；' in answer_text:
+                fill_answers = [ans.strip() for ans in answer_text.split('；') if ans.strip()]
+                answer["bestAnswer"] = fill_answers
+                answer["allAnswer"] = [fill_answers]
+                answer["answerText"] = answer_text
+            else:
+                answer["bestAnswer"] = [answer_text]
+                answer["allAnswer"] = [[answer_text]]
+        
         elif question_type == 3:
             answer["answerKey"] = [answer_text] if answer_text in ['对', '错', '正确', '错误', 'A', 'B'] else []
             answer["answerKeyText"] = answer["answerKey"][0] if answer["answerKey"] else ''

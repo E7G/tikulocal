@@ -213,22 +213,45 @@ class QuestionParser:
         return options
     
     def _match_question_header(self, text: str) -> Optional[re.Match]:
-        return re.match(r'^(\d+)[.、．]\s*【(.+题)】$', text)
+        return re.match(r'^(\d+)(?:[.、．]|\s+)\s*【(.+题)】$', text)
     
     def _match_option(self, text: str) -> Optional[re.Match]:
         return re.match(r'^([A-Z])、\s*(.+)$', text)
     
     def _match_my_answer(self, text: str) -> Optional[re.Match]:
-        return re.match(r'^我的答案[:：]\s*(.+)$', text)
+        match = re.match(r'^我的答案[:：]\s*(.+)$', text)
+        if match:
+            answer_content = match.group(1).strip()
+            answer_content = self._extract_fill_blank_answer(answer_content)
+            return re.match(r'^(.+)$', answer_content)
+        return None
     
     def _match_answer_status(self, text: str) -> Optional[re.Match]:
         return re.match(r'^答案状态[:：]\s*(.+)$', text)
     
     def _match_correct_answer(self, text: str) -> Optional[re.Match]:
-        return re.match(r'^正确答案[:：]\s*(.+)$', text)
+        match = re.match(r'^正确答案[:：]\s*(.+)$', text)
+        if match:
+            answer_content = match.group(1).strip()
+            answer_content = self._extract_fill_blank_answer(answer_content)
+            return re.match(r'^(.+)$', answer_content)
+        return None
     
     def _match_score(self, text: str) -> Optional[re.Match]:
         return re.match(r'^得分[:：]\s*(.+)$', text)
+    
+    def _extract_fill_blank_answer(self, answer_text: str) -> str:
+        fill_blank_pattern = r'(第[一二三四五六七八九十]+空[:：]\s*([^第]+))'
+        matches = re.findall(fill_blank_pattern, answer_text)
+        
+        if matches:
+            answers = []
+            for match in matches:
+                answer_content = match[1].strip()
+                answers.append(answer_content)
+            return '；'.join(answers)
+        
+        return answer_text
     
     def _is_option_line(self, text: str) -> bool:
         return bool(re.match(r'^[A-Z]、', text))
