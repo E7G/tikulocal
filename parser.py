@@ -188,35 +188,78 @@ class QuestionParser:
         return self.questions
     
     def _extract_options_from_paragraph(self, para) -> List[str]:
+        # Word often stores multiple options in one paragraph separated by line breaks.
         options = []
-        
-        for run in para.runs:
-            for child in run._element:
-                if child.tag.endswith('}t'):
-                    text = child.text
-                    if text:
-                        option_parts = [text]
-                        
-                        # 检查子元素中的<w:br/>标签
-                        for subchild in child:
-                            if subchild.tag.endswith('}br') and subchild.tail:
-                                option_parts.append(subchild.tail.strip())
-                        
-                        for part in option_parts:
-                            part = part.strip()
-                            if part and self._is_option_line(part):
-                                option_match = self._match_option(part)
-                                if option_match:
-                                    option_text = option_match.group(2).strip()
-                                    options.append(option_text)
-        
+        for line in para.text.splitlines():
+            match = self._match_option(line.strip())
+            if match:
+                options.append(match.group(2).strip())
         return options
     
     def _match_question_header(self, text: str) -> Optional[re.Match]:
         return re.match(r'^(\d+)(?:[.、．]|\s+)\s*【(.+题)】$', text)
     
     def _match_option(self, text: str) -> Optional[re.Match]:
-        return re.match(r'^([A-Z])、\s*(.+)$', text)
+        # Accept common Word/export styles: A. text, A、text, A．text, A) text.
+        return re.match(r'^\s*([A-ZＡ-Ｚ])\s*[.．、)）:：]\s*(.+?)\s*
+    
+    def _match_my_answer(self, text: str) -> Optional[re.Match]:
+        match = re.match(r'^我的答案[:：]\s*(.+)$', text)
+        if match:
+            answer_content = match.group(1).strip()
+            answer_content = self._extract_fill_blank_answer(answer_content)
+            return re.match(r'^(.+)$', answer_content)
+        return None
+    
+    def _match_answer_status(self, text: str) -> Optional[re.Match]:
+        return re.match(r'^答案状态[:：]\s*(.+)$', text)
+    
+    def _match_correct_answer(self, text: str) -> Optional[re.Match]:
+        match = re.match(r'^正确答案[:：]\s*(.+)$', text)
+        if match:
+            answer_content = match.group(1).strip()
+            answer_content = self._extract_fill_blank_answer(answer_content)
+            return re.match(r'^(.+)$', answer_content)
+        return None
+    
+    def _match_score(self, text: str) -> Optional[re.Match]:
+        return re.match(r'^得分[:：]\s*(.+)$', text)
+    
+    def _extract_fill_blank_answer(self, answer_text: str) -> str:
+        fill_blank_pattern = r'(第[一二三四五六七八九十]+空[:：]\s*([^第]+))'
+        matches = re.findall(fill_blank_pattern, answer_text)
+        
+        if matches:
+            answers = []
+            for match in matches:
+                answer_content = match[1].strip()
+                answers.append(answer_content)
+            return '；'.join(answers)
+        
+        return answer_text
+    
+    def _is_option_line(self, text: str) -> bool:
+        return self._match_option(text) is not None
+    
+    def _is_answer_line(self, text: str) -> bool:
+        return bool(re.match(r'^(我的答案|答案状态|正确答案|得分)[:：]', text))
+    
+    def _parse_question_type(self, type_text: str) -> QuestionType:
+        type_mapping = {
+            '单选题': QuestionType.SINGLE_CHOICE,
+            '多选题': QuestionType.MULTIPLE_CHOICE,
+            '填空题': QuestionType.FILL_BLANK,
+            '判断题': QuestionType.TRUE_FALSE,
+            '问答题': QuestionType.ESSAY
+        }
+        return type_mapping.get(type_text, QuestionType.ESSAY)
+    
+    def _finalize_question(self, question: Question, options: List[str]):
+        question.options = options
+        if question.answer is None and question.answer_status == "正确" and question.my_answer:
+            question.answer = question.my_answer
+        self.questions.append(question)
+, text)
     
     def _match_my_answer(self, text: str) -> Optional[re.Match]:
         match = re.match(r'^我的答案[:：]\s*(.+)$', text)
