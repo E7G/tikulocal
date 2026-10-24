@@ -237,6 +237,44 @@ class ExporterCompatibilityTests(unittest.TestCase):
         self.assertEqual(questions[0].answer, "B")
         self.assertEqual(questions[0].options, ["错误", "正确"])
 
+    def test_split_correct_answer_label_and_value(self):
+        questions = self.parse_docx(
+            "【判断题】",
+            "这是正确的判断。",
+            "我的答案：错",
+            "正确答案：",
+            "",
+            "对",
+            "",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "对")
+
+    def test_yuketang_type_with_score_metadata(self):
+        questions = self.parse_docx(
+            "单选题（共5分）",
+            "最常见的题型是什么？",
+            "选项：",
+            "A. 单选题",
+            "B. 多选题",
+            "正确答案：A. 单选题",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].question_type, QuestionType.SINGLE_CHOICE)
+        self.assertEqual(questions[0].content, "最常见的题型是什么？")
+        self.assertEqual(questions[0].answer, "A")
+
+    def test_split_label_never_uses_my_answer_as_correct(self):
+        questions = self.parse_docx(
+            "【单选题】",
+            "这道题应当被跳过",
+            "A. 甲",
+            "B. 乙",
+            "正确答案：",
+            "我的答案：A",
+        )
+        self.assertEqual(questions, [])
+
     def test_legacy_plain_text_parser(self):
         questions = self.parser.parse([
             "1 【单选题】",
