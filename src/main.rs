@@ -9,7 +9,7 @@ mod import;
 
 slint::include_modules!();
 
-use slint::{Model, ModelRc, SharedString, VecModel};
+use slint::{Model, ModelRc, SharedString, StandardListViewItem, VecModel};
 use std::{
     collections::BTreeSet,
     fs::File,
@@ -50,6 +50,32 @@ fn question_row(rec: &db::Record) -> QuestionRow {
     }
 }
 
+fn list_item(text: &str) -> StandardListViewItem {
+    SharedString::from(text).into()
+}
+
+fn table_row(cells: &[String]) -> ModelRc<StandardListViewItem> {
+    ModelRc::new(VecModel::from(
+        cells.iter().map(|text| list_item(text)).collect::<Vec<_>>(),
+    ))
+}
+
+fn set_manage_table(app: &MainWindow, model: &VecModel<QuestionRow>) {
+    let rows = (0..model.row_count())
+        .filter_map(|index| model.row_data(index))
+        .map(|row| {
+            table_row(&[
+                if row.selected { "✓" } else { "" }.to_owned(),
+                row.id.to_string(),
+                row.kind.to_string(),
+                row.title.to_string(),
+                row.answer.to_string(),
+            ])
+        })
+        .collect::<Vec<_>>();
+    app.set_manage_table_rows(ModelRc::new(VecModel::from(rows)));
+}
+
 fn show_staged(app: &MainWindow, staged: &Arc<Mutex<Vec<PathBuf>>>) {
     let rows: Vec<FileRow> = staged
         .lock()
@@ -65,7 +91,13 @@ fn show_staged(app: &MainWindow, staged: &Arc<Mutex<Vec<PathBuf>>>) {
             path: SharedString::from(path.to_string_lossy().as_ref()),
         })
         .collect();
+    let file_items = rows
+        .iter()
+        .map(|row| list_item(&format!("{}    —    {}", row.name, row.path)))
+        .collect::<Vec<_>>();
+    app.set_file_items(ModelRc::new(VecModel::from(file_items)));
     app.set_staged_files(ModelRc::new(VecModel::from(rows)));
+    app.set_selected_file_index(-1);
 }
 
 fn refresh_ui(app: &MainWindow, database: &Path, manage_model: &VecModel<QuestionRow>) {
@@ -78,6 +110,8 @@ fn refresh_ui(app: &MainWindow, database: &Path, manage_model: &VecModel<Questio
             app.set_judge_count(count[4] as i32);
             app.set_essay_count(count[5] as i32);
             manage_model.set_vec(records.iter().map(question_row).collect::<Vec<_>>());
+            set_manage_table(app, manage_model);
+            app.set_selected_manage_row(-1);
             app.set_selected_count(0);
         }
         Err(error) => app.set_status(format!("数据库读取失败：{error}").into()),
@@ -417,6 +451,18 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                             selected: false,
                         })
                         .collect::<Vec<_>>();
+                    let table_rows = rows
+                        .iter()
+                        .map(|row: &QuestionRow| {
+                            table_row(&[
+                                row.kind.to_string(),
+                                row.title.to_string(),
+                                row.options.to_string(),
+                                row.answer.to_string(),
+                            ])
+                        })
+                        .collect::<Vec<_>>();
+                    ui.set_search_table_rows(ModelRc::new(VecModel::from(table_rows)));
                     ui.set_search_results(ModelRc::new(VecModel::from(rows)));
                     ui.set_status(format!("搜索完成：{} 道匹配题目", found.len()).into());
                 }
@@ -450,6 +496,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
                 .count();
             if let Some(ui) = weak.upgrade() {
                 ui.set_selected_count(count as i32);
+                set_manage_table(&ui, &model);
             }
         });
     }

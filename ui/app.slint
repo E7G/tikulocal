@@ -1,63 +1,24 @@
-
-import { Button, LineEdit, ComboBox, CheckBox, ListView, ProgressIndicator, TextEdit, Palette } from "std-widgets.slint";
+import { Button, LineEdit, ComboBox, CheckBox, StandardListView, StandardTableView,
+         GroupBox, TabWidget, TextEdit, ProgressIndicator, Palette } from "std-widgets.slint";
 
 export struct FileRow { name: string, path: string }
 export struct QuestionRow { id: int, title: string, options: string, kind: string, answer: string, date: string, selected: bool }
 
-component NavEntry inherits Rectangle {
-    in property <string> icon-text;
-    in property <string> title;
-    in property <bool> active;
-    in property <bool> dark;
-    callback navigate();
-    height: 46px;
-    border-radius: 8px;
-    background: active ? (dark ? #313e53 : #e4effc) : (hit.has-hover ? (dark ? #293449 : #e9edf4) : transparent);
-    Rectangle {
-        x: 0px; y: 12px; width: 3px; height: 22px;
-        border-radius: 2px;
-        background: active ? (dark ? #74b9ff : #0969da) : transparent;
-    }
-    HorizontalLayout {
-        padding-left: 13px; padding-right: 10px; spacing: 13px;
-        Text { text: root.icon-text; font-size: 19px; width: 24px; horizontal-alignment: center;
-            vertical-alignment: center; color: active ? (dark ? #94c8ff : #0969da) : (dark ? #a6b4c8 : #697b92); }
-        Text { text: root.title; font-size: 14px; vertical-alignment: center;
-            font-weight: active ? 700 : 500; color: active ? (dark ? #e7f2ff : #173c68) : (dark ? #d5deec : #334155); }
-    }
-    hit := TouchArea { clicked => { root.navigate(); } }
-}
-
-component StatTile inherits Rectangle {
-    in property <string> label;
-    in property <string> amount;
-    in property <bool> dark;
-    in property <bool> emphasized;
-    horizontal-stretch: 1;
-    height: 104px;
-    background: emphasized ? (dark ? #213d61 : #e9f2ff) : (dark ? #262b35 : white);
-    border-radius: 10px; border-width: 1px;
-    border-color: emphasized ? (dark ? #476da2 : #cbdff9) : (dark ? #394252 : #e4e8ef);
-    VerticalLayout {
-        padding: 16px; spacing: 5px;
-        Text { text: root.label; font-size: 12px; color: root.dark ? #aab7c8 : #64748b; }
-        Text { text: root.amount; font-size: 28px; font-weight: 700; color: root.dark ? #f5f8ff : #1a2940; }
-    }
-}
-
 export component MainWindow inherits Window {
-    title: "TikuLocal · 题库工作台";
-    width: 1000px; height: 630px;
-    background: root.canvas;
-    default-font-family: "Segoe UI";
+    title: "TikuLocal · Material Design";
+    width: 920px;
+    height: 560px;
+    background: Palette.background;
 
     in-out property <int> page: 0;
     in-out property <string> query: "";
     in-out property <int> filter-index: 0;
-    in-out property <string> status: "就绪，可以开始使用";
-    in-out property <string> import-report: "目前还没有导入记录";
+    in-out property <int> selected-file-index: -1;
+    in-out property <int> selected-manage-row: -1;
+    in-out property <string> status: "准备就绪";
+    in-out property <string> import-report: "暂无导入记录";
     in-out property <string> database-path: "";
-    in-out property <string> service-state: "正在检查本地服务…";
+    in-out property <string> service-state: "检查本地 API …";
     in-out property <bool> import-busy: false;
     in-out property <bool> confirm-clear: false;
     in-out property <bool> confirm-delete: false;
@@ -67,6 +28,9 @@ export component MainWindow inherits Window {
     in property <[FileRow]> staged-files;
     in property <[QuestionRow]> search-results;
     in property <[QuestionRow]> manage-rows;
+    in property <[StandardListViewItem]> file-items;
+    in property <[[StandardListViewItem]]> search-table-rows;
+    in property <[[StandardListViewItem]]> manage-table-rows;
     in property <int> match-count: 0;
     in property <int> total: 0;
     in property <int> single-count: 0;
@@ -88,311 +52,295 @@ export component MainWindow inherits Window {
     callback open-folder();
     callback export-json();
     callback theme-changed(int);
+
     public function apply-palette(mode: int) {
-        Palette.color-scheme = mode == 2 ? ColorScheme.dark : (mode == 1 ? ColorScheme.light : ColorScheme.unknown);
+        Palette.color-scheme = mode == 2 ? ColorScheme.dark
+            : (mode == 1 ? ColorScheme.light : ColorScheme.unknown);
     }
 
-    private property <bool> is-dark: root.theme-mode == 2 || (root.theme-mode == 0 && root.system-dark);
-    private property <brush> canvas: root.is-dark ? #191c22 : #f4f6fa;
-    private property <brush> nav-bg: root.is-dark ? #20242d : #edf1f7;
-    private property <brush> card: root.is-dark ? #252a34 : #ffffff;
-    private property <brush> card-muted: root.is-dark ? #292f3a : #f8fafd;
-    private property <brush> stroke: root.is-dark ? #384152 : #e1e6ee;
-    private property <brush> primary-text: root.is-dark ? #f5f7fc : #202939;
-    private property <brush> secondary-text: root.is-dark ? #b0bbcb : #65758b;
-    private property <brush> subtle-text: root.is-dark ? #8997ad : #8190a4;
-    private property <brush> blue: root.is-dark ? #85beff : #176bcc;
-    private property <brush> blue-bg: root.is-dark ? #1b3551 : #eaf3ff;
-    private property <brush> success: root.is-dark ? #68deb0 : #157651;
-    private property <brush> row-hover: root.is-dark ? #303846 : #f1f6fc;
-
-    HorizontalLayout {
-        spacing: 0px;
-        Rectangle {
-            width: 245px; background: root.nav-bg;
-            border-width: 1px; border-color: root.stroke;
-            VerticalLayout {
-                padding-left: 16px; padding-right: 16px; padding-top: 24px; padding-bottom: 18px;
-                spacing: 8px;
-                Rectangle {
-                    height: 77px; background: transparent;
-                    HorizontalLayout { spacing: 12px;
-                        Rectangle { width: 45px; height: 45px; border-radius: 12px;
-                            background: #176bcc;
-                            Text { text: "T"; color: white; font-size: 25px; font-weight: 800;
-                                horizontal-alignment: center; vertical-alignment: center; }
-                        }
-                        VerticalLayout { spacing: 3px;
-                            Text { text: "TikuLocal"; font-size: 19px; font-weight: 750; color: root.primary-text; }
-                            Text { text: "LOCAL QUESTION BANK"; font-size: 10px; color: root.subtle-text; }
-                        }
-                    }
-                }
-                Text { text: "工作空间"; color: root.subtle-text; font-size: 11px; font-weight: 700; height: 25px; vertical-alignment: center; }
-                NavEntry { title: "导入题目"; icon-text: "↓"; dark: root.is-dark; active: root.page == 0; navigate => { root.page = 0; } }
-                NavEntry { title: "搜索答案"; icon-text: "⌕"; dark: root.is-dark; active: root.page == 1; navigate => { root.page = 1; } }
-                NavEntry { title: "题库管理"; icon-text: "▤"; dark: root.is-dark; active: root.page == 2; navigate => { root.page = 2; root.refresh(); } }
-                Rectangle { height: 16px; background: transparent; }
-                Text { text: "偏好"; color: root.subtle-text; font-size: 11px; font-weight: 700; height: 25px; vertical-alignment: center; }
-                NavEntry { title: "设置与连接"; icon-text: "⚙"; dark: root.is-dark; active: root.page == 3; navigate => { root.page = 3; } }
-                Rectangle { vertical-stretch: 1; background: transparent; }
-                Rectangle {
-                    height: 104px; background: root.card; border-radius: 11px;
-                    border-width: 1px; border-color: root.stroke;
-                    VerticalLayout { padding: 13px; spacing: 8px;
-                        HorizontalLayout { spacing: 9px;
-                            Rectangle { width: 9px; height: 9px; border-radius: 5px; background: root.success; }
-                            Text { text: "本地题库服务"; color: root.primary-text; font-weight: 650; font-size: 13px; }
-                        }
-                        Text { text: "127.0.0.1 : 8060"; color: root.secondary-text; font-size: 12px; }
-                        Text { text: "Rust  ·  Fluent 2"; color: root.subtle-text; font-size: 11px; }
-                    }
-                }
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+        HorizontalLayout {
+            height: 35px;
+            spacing: 12px;
+            Text {
+                text: "TikuLocal";
+                color: Palette.foreground;
+                font-size: 24px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            Text {
+                text: "本地题库  ·  Material Design";
+                color: Palette.foreground;
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; background: transparent; }
+            Text {
+                text: root.total + " 道题目";
+                color: Palette.foreground;
+                vertical-alignment: center;
             }
         }
-        Rectangle {
-            horizontal-stretch: 1; background: root.canvas;
-            VerticalLayout {
-                padding-left: 28px; padding-right: 28px; padding-top: 14px; padding-bottom: 12px;
-                spacing: 11px;
-                HorizontalLayout {
-                    height: 40px; spacing: 12px;
-                    Text { text: "TIKULOCAL   /   " + (root.page == 0 ? "导入" : root.page == 1 ? "搜索" : root.page == 2 ? "管理" : "设置");
-                        font-size: 11px; font-weight: 700; color: root.subtle-text; vertical-alignment: center; }
-                    Rectangle { horizontal-stretch: 1; background: transparent; }
-                    Button {
-                        text: root.is-dark ? "☀  浅色" : "☾  深色";
-                        clicked => {
-                            root.theme-mode = root.is-dark ? 1 : 2;
-                            Palette.color-scheme = root.theme-mode == 2 ? ColorScheme.dark : ColorScheme.light;
-                            root.theme-changed(root.theme-mode);
-                        }
-                    }
-                }
-                if root.page == 0: VerticalLayout {
-                    spacing: 10px;
-                    HorizontalLayout {
-                        height: 62px; spacing: 12px;
-                        VerticalLayout { spacing: 5px;
-                            Text { text: "导入题库"; color: root.primary-text; font-weight: 750; font-size: 29px; }
-                            Text { text: "将课程导出的答案集中管理，随时在本地快速检索。"; color: root.secondary-text; font-size: 13px; }
-                        }
-                        Rectangle { horizontal-stretch: 1; background: transparent; }
-                    }
-                    Rectangle {
-                        height: 116px; background: root.blue-bg; border-radius: 12px;
-                        border-width: 1px; border-color: root.is-dark ? #335275 : #ccdef6;
-                        HorizontalLayout { padding: 21px; spacing: 20px;
-                            Rectangle { width: 62px; height: 62px; border-radius: 14px; background: root.is-dark ? #264b73 : #d9eaff;
-                                Text { text: "↓"; font-size: 33px; color: root.blue; font-weight: 700;
-                                    horizontal-alignment: center; vertical-alignment: center; }
+
+        TabWidget {
+            current-index <=> root.page;
+
+            Tab {
+                title: "导入题库";
+                VerticalLayout {
+                    spacing: 7px;
+                    Text { text: "导入题目"; color: Palette.foreground; font-size: 23px; font-weight: 650; }
+                    GroupBox {
+                        title: "添加 Word / JSON 文件";
+                        height: 122px;
+                        VerticalLayout {
+                            spacing: 7px;
+                            Text {
+                                text: "从 Word (.docx) 或 JSON 导入答案，标准答案优先，答对的个人答案也能导入。";
+                                color: Palette.foreground;
+                                wrap: word-wrap;
                             }
-                            VerticalLayout { spacing: 9px; horizontal-stretch: 1;
-                                Text { text: "开始导入"; color: root.primary-text; font-weight: 700; font-size: 19px; }
-                                Text { text: "支持 Word (.docx) 和 JSON · 可同时选择多个文件"; color: root.secondary-text; font-size: 12px; }
-                                Text { text: "仅保存标准答案或经系统批改正确的个人答案"; color: root.secondary-text; font-size: 12px; }
-                            }
-                            Button { text: "选择文件"; primary: true; clicked => { root.choose-files(); } }
-                        }
-                    }
-                    HorizontalLayout { spacing: 10px; height: 44px;
-                        Text { text: "待导入"; font-size: 18px; font-weight: 700; color: root.primary-text; vertical-alignment: center; }
-                        Rectangle { width: 64px; height: 25px; border-radius: 13px; background: root.card-muted;
-                            Text { text: root.staged-files.length + " 个文件"; color: root.secondary-text; font-size: 11px;
-                                vertical-alignment: center; horizontal-alignment: center; }
-                        }
-                        Rectangle { horizontal-stretch: 1; background: transparent; }
-                        Button { text: "移除全部"; enabled: root.staged-files.length > 0 && !root.import-busy; clicked => { root.clear-staged(); } }
-                        Button { text: root.import-busy ? "正在导入…" : "导入全部"; primary: true;
-                            enabled: root.staged-files.length > 0 && !root.import-busy; clicked => { root.import-all(); } }
-                    }
-                    Rectangle {
-                        vertical-stretch: 1; background: root.card; border-radius: 11px;
-                        border-width: 1px; border-color: root.stroke;
-                        if root.staged-files.length == 0: VerticalLayout {
-                            padding-top: 25px; spacing: 8px;
-                            Text { text: "▣"; font-size: 29px; color: root.subtle-text; horizontal-alignment: center; }
-                            Text { text: "还没有选择文件"; font-size: 15px; color: root.primary-text; font-weight: 650; horizontal-alignment: center; }
-                            Text { text: "点击上方「选择文件」，导入本地题目和答案"; font-size: 12px; color: root.secondary-text; horizontal-alignment: center; }
-                        }
-                        ListView {
-                            for file[i] in root.staged-files : Rectangle {
-                                height: 66px; background: Math.mod(i,2) == 0 ? root.card : root.card-muted;
-                                HorizontalLayout { padding-left: 18px; padding-right: 16px; spacing: 14px;
-                                    Rectangle { width: 36px; height: 36px; border-radius: 8px; background: root.blue-bg;
-                                        Text { text: "▤"; color: root.blue; font-size: 19px;
-                                            horizontal-alignment: center; vertical-alignment: center; } }
-                                    VerticalLayout { horizontal-stretch: 1; spacing: 5px;
-                                        Text { text: file.name; font-size: 14px; color: root.primary-text; font-weight: 650; overflow: elide; }
-                                        Text { text: file.path; font-size: 11px; color: root.subtle-text; overflow: elide; }
-                                    }
-                                    Button { text: "移除"; enabled: !root.import-busy; clicked => { root.remove-staged(i); } }
+                            HorizontalLayout {
+                                height: 36px;
+                                spacing: 10px;
+                                Button { text: "选择文件…"; primary: true; clicked => { root.choose-files(); } }
+                                Button {
+                                    text: "全部导入";
+                                    enabled: root.staged-files.length > 0 && !root.import-busy;
+                                    clicked => { root.import-all(); }
                                 }
-                            }
-                        }
-                    }
-                    Rectangle { height: 95px; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        VerticalLayout { padding: 12px; spacing: 7px;
-                            Text { text: "导入记录"; font-size: 13px; color: root.primary-text; font-weight: 700; }
-                            TextEdit { text: root.import-report; read-only: true; font-size: 12px; }
-                        }
-                    }
-                }
-                if root.page == 1: VerticalLayout {
-                    spacing: 16px;
-                    VerticalLayout { spacing: 6px; height: 74px;
-                        Text { text: "搜索答案"; font-size: 29px; font-weight: 750; color: root.primary-text; }
-                        Text { text: "本地检索，完全离线运行，答案不用上传到云端。"; font-size: 13px; color: root.secondary-text; }
-                    }
-                    Rectangle { height: 90px; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        HorizontalLayout { padding: 16px; spacing: 12px;
-                            LineEdit { horizontal-stretch: 1; placeholder-text: "输入题目、关键字或句子…"; text <=> root.query;
-                                accepted => { root.search(root.query, root.filter-index); } }
-                            ComboBox { width: 124px; model: ["全部题型","单选","多选","填空","判断","问答"]; current-index <=> root.filter-index; }
-                            Button { text: "搜索"; primary: true; clicked => { root.search(root.query, root.filter-index); } }
-                        }
-                    }
-                    HorizontalLayout { height: 26px; spacing: 10px;
-                        Text { text: "搜索结果"; color: root.primary-text; font-size: 17px; font-weight: 700; vertical-alignment: center; }
-                        Text { text: root.match-count + " 道匹配"; font-size: 12px; color: root.secondary-text; vertical-alignment: center; }
-                    }
-                    Rectangle { vertical-stretch: 1; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        if root.match-count == 0: VerticalLayout {
-                            padding-top: 25px; spacing: 8px;
-                            Text { text: "⌕"; font-size: 34px; color: root.subtle-text; horizontal-alignment: center; }
-                            Text { text: "在这里查找你的题目"; font-size: 15px; font-weight: 650; color: root.primary-text; horizontal-alignment: center; }
-                            Text { text: "匹配的标准答案将显示在下方"; color: root.secondary-text; font-size: 12px; horizontal-alignment: center; }
-                        }
-                        ListView {
-                            for item[i] in root.search-results : Rectangle {
-                                height: 123px; background: Math.mod(i,2) == 0 ? root.card : root.card-muted;
-                                VerticalLayout { padding-left: 18px; padding-right: 18px; padding-top: 16px; padding-bottom: 12px; spacing: 9px;
-                                    HorizontalLayout { spacing: 10px;
-                                        Rectangle { width: 64px; height: 25px; border-radius: 5px; background: root.blue-bg;
-                                            Text { text: item.kind; color: root.blue; font-size: 11px; font-weight: 700;
-                                                horizontal-alignment: center; vertical-alignment: center; } }
-                                        Text { text: item.title; font-size: 14px; color: root.primary-text; font-weight: 700; overflow: elide; vertical-alignment: center; }
-                                    }
-                                    Text { text: item.options; font-size: 12px; color: root.subtle-text; overflow: elide; }
-                                    Text { text: "✓  正确答案    " + item.answer; font-size: 13px; font-weight: 700; color: root.success; overflow: elide; }
+                                Button {
+                                    text: "清空列表";
+                                    enabled: root.staged-files.length > 0 && !root.import-busy;
+                                    clicked => { root.clear-staged(); root.selected-file-index = -1; }
                                 }
+                                Rectangle { horizontal-stretch: 1; background: transparent; }
+                                if root.import-busy: ProgressIndicator { width: 22px; height: 22px; indeterminate: true; }
                             }
                         }
                     }
-                }
-                if root.page == 2: VerticalLayout {
-                    spacing: 11px;
-                    VerticalLayout { height: 69px; spacing: 6px;
-                        Text { text: "题库管理"; font-size: 29px; font-weight: 750; color: root.primary-text; }
-                        Text { text: "查看题量、备份数据并管理已收录的答案。"; font-size: 13px; color: root.secondary-text; }
-                    }
-                    HorizontalLayout { spacing: 12px;
-                        StatTile { label: "题目总量"; amount: root.total; dark: root.is-dark; emphasized: true; }
-                        StatTile { label: "单选题"; amount: root.single-count; dark: root.is-dark; emphasized: false; }
-                        StatTile { label: "多选题"; amount: root.multiple-count; dark: root.is-dark; emphasized: false; }
-                        StatTile { label: "判断题"; amount: root.judge-count; dark: root.is-dark; emphasized: false; }
-                    }
-                    HorizontalLayout { height: 45px; spacing: 9px;
-                        Text { text: "最近收录的题目"; color: root.primary-text; font-size: 17px; font-weight: 700; vertical-alignment: center; }
-                        Rectangle { horizontal-stretch: 1; background: transparent; }
-                        Button { text: "刷新"; clicked => { root.refresh(); } }
-                        Button { text: "导出 JSON"; clicked => { root.export-json(); } }
-                        Button { text: "删除选中 (" + root.selected-count + ")"; enabled: root.selected-count > 0;
-                            clicked => { root.confirm-delete = true; } }
-                        Button { text: "清空题库"; clicked => { root.confirm-clear = true; } }
-                    }
-                    if root.confirm-delete: Rectangle { height: 61px; background: root.is-dark ? #433322 : #fff3df; border-radius: 9px;
-                        HorizontalLayout { padding: 12px; spacing: 10px;
-                            Text { text: "永久删除选中的 " + root.selected-count + " 道题目？"; color: root.is-dark ? #f9d39f : #7b4808; horizontal-stretch: 1; vertical-alignment: center; }
-                            Button { text: "取消"; clicked => { root.confirm-delete = false; } }
-                            Button { text: "确认删除"; clicked => { root.delete-selected(); root.confirm-delete = false; } }
-                        }
-                    }
-                    if root.confirm-clear: Rectangle { height: 61px; background: root.is-dark ? #492b30 : #ffeff0; border-radius: 9px;
-                        HorizontalLayout { padding: 12px; spacing: 10px;
-                            Text { text: "该操作无法撤销，确认清空全部题目？"; color: root.is-dark ? #ffb1b1 : #8a2733; horizontal-stretch: 1; vertical-alignment: center; }
-                            Button { text: "取消"; clicked => { root.confirm-clear = false; } }
-                            Button { text: "确认清空"; clicked => { root.clear-all(); root.confirm-clear = false; } }
-                        }
-                    }
-                    Rectangle {
-                        vertical-stretch: 1; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        if root.total == 0: VerticalLayout {
-                            padding-top: 25px; spacing: 8px;
-                            Text { text: "▤"; font-size: 29px; color: root.subtle-text; horizontal-alignment: center; }
-                            Text { text: "题库还是空的"; color: root.primary-text; font-size: 15px; font-weight: 650; horizontal-alignment: center; }
-                            Button { text: "去导入题目"; clicked => { root.page = 0; } }
-                        }
-                        ListView {
-                            for item[i] in root.manage-rows : Rectangle {
-                                height: 74px;
-                                background: item.selected ? (root.is-dark ? #253e58 : #e9f3ff) : (Math.mod(i,2) == 0 ? root.card : root.card-muted);
-                                HorizontalLayout { padding-left: 17px; padding-right: 17px; spacing: 13px;
-                                    CheckBox { checked: item.selected; toggled => { root.toggle-selected(i); } }
-                                    VerticalLayout { horizontal-stretch: 1; spacing: 7px;
-                                        Text { text: item.title; font-size: 14px; font-weight: 650; color: root.primary-text; overflow: elide; }
-                                        Text { text: item.kind + "  ·  " + item.options; font-size: 11px; color: root.subtle-text; overflow: elide; }
+                    GroupBox {
+                        title: "待导入文件 (" + root.staged-files.length + ")";
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 8px;
+                            StandardListView {
+                                model: root.file-items;
+                                current-item <=> root.selected-file-index;
+                                vertical-stretch: 1;
+                            }
+                            HorizontalLayout {
+                                height: 36px;
+                                Button {
+                                    text: "移除选中的文件";
+                                    enabled: root.selected-file-index >= 0 && !root.import-busy;
+                                    clicked => {
+                                        root.remove-staged(root.selected-file-index);
+                                        root.selected-file-index = -1;
                                     }
-                                    Text { text: item.answer; color: root.success; font-size: 13px; font-weight: 700; width: 124px; overflow: elide; vertical-alignment: center; }
                                 }
-                            }
-                        }
-                    }
-                }
-                if root.page == 3: VerticalLayout {
-                    spacing: 10px;
-                    VerticalLayout { height: 63px; spacing: 6px;
-                        Text { text: "设置与连接"; font-size: 29px; font-weight: 750; color: root.primary-text; }
-                        Text { text: "让题库更符合你的习惯，同时管理本地服务。"; font-size: 13px; color: root.secondary-text; }
-                    }
-                    Rectangle { height: 132px; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        VerticalLayout { padding: 20px; spacing: 13px;
-                            Text { text: "外观"; color: root.primary-text; font-weight: 700; font-size: 17px; }
-                            Text { text: "选择与系统一致的外观，或手动指定主题。"; color: root.secondary-text; font-size: 12px; }
-                            HorizontalLayout { spacing: 9px;
-                                Button { text: root.theme-mode == 0 ? "✓ 跟随系统" : "跟随系统";
-                                    clicked => { root.theme-mode = 0; Palette.color-scheme = ColorScheme.unknown; root.theme-changed(0); } }
-                                Button { text: root.theme-mode == 1 ? "✓ 浅色模式" : "浅色模式";
-                                    clicked => { root.theme-mode = 1; Palette.color-scheme = ColorScheme.light; root.theme-changed(1); } }
-                                Button { text: root.theme-mode == 2 ? "✓ 深色模式" : "深色模式";
-                                    clicked => { root.theme-mode = 2; Palette.color-scheme = ColorScheme.dark; root.theme-changed(2); } }
                                 Rectangle { horizontal-stretch: 1; background: transparent; }
                             }
                         }
                     }
-                    Rectangle { height: 145px; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        VerticalLayout { padding: 20px; spacing: 12px;
-                            Text { text: "本地题库 API"; color: root.primary-text; font-size: 17px; font-weight: 700; }
-                            HorizontalLayout { spacing: 8px;
-                                Rectangle { width: 9px; height: 9px; border-radius: 5px; background: root.success; }
-                                Text { text: root.service-state; font-size: 13px; color: root.secondary-text; vertical-alignment: center; }
-                            }
-                            Text { text: "http://127.0.0.1:8060/adapter-service/search"; font-size: 12px; color: root.blue; }
-                            Text { text: "仅监听本机，兼容 OCS / tikuAdapter 题库响应格式"; font-size: 12px; color: root.subtle-text; }
+                    GroupBox {
+                        title: "导入结果";
+                        height: 98px;
+                        TextEdit {
+                            text: root.import-report;
+                            read-only: true;
+                            font-size: 12px;
                         }
                     }
-                    Rectangle { height: 122px; background: root.card; border-radius: 11px; border-width: 1px; border-color: root.stroke;
-                        VerticalLayout { padding: 20px; spacing: 12px;
-                            Text { text: "数据库位置"; color: root.primary-text; font-size: 17px; font-weight: 700; }
-                            Text { text: root.database-path; color: root.secondary-text; font-size: 12px; overflow: elide; }
-                            HorizontalLayout { spacing: 10px;
-                                Button { text: "打开文件夹"; clicked => { root.open-folder(); } }
+                }
+            }
+
+            Tab {
+                title: "搜索答案";
+                VerticalLayout {
+                    spacing: 9px;
+                    Text { text: "搜索本地题库"; color: Palette.foreground; font-size: 23px; font-weight: 650; }
+                    GroupBox {
+                        title: "搜索条件";
+                        height: 80px;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            LineEdit {
+                                placeholder-text: "输入题目或关键词";
+                                text <=> root.query;
+                                horizontal-stretch: 1;
+                                accepted => { root.search(root.query, root.filter-index); }
+                            }
+                            ComboBox {
+                                width: 126px;
+                                model: ["全部题型", "单选", "多选", "填空", "判断", "问答"];
+                                current-index <=> root.filter-index;
+                            }
+                            Button {
+                                text: "搜索";
+                                primary: true;
+                                clicked => { root.search(root.query, root.filter-index); }
+                            }
+                        }
+                    }
+                    GroupBox {
+                        title: "搜索结果 · " + root.match-count + " 条";
+                        vertical-stretch: 1;
+                        StandardTableView {
+                            columns: [
+                                { title: "题型", width: 72px },
+                                { title: "题目", width: 275px },
+                                { title: "选项", width: 205px },
+                                { title: "正确答案", width: 160px },
+                            ];
+                            rows: root.search-table-rows;
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "题库管理";
+                VerticalLayout {
+                    spacing: 9px;
+                    Text { text: "题库管理"; color: Palette.foreground; font-size: 23px; font-weight: 650; }
+                    GroupBox {
+                        title: "题目概况";
+                        height: 59px;
+                        HorizontalLayout {
+                            spacing: 16px;
+                            Text { text: "全部 " + root.total; color: Palette.foreground; }
+                            Text { text: "单选 " + root.single-count; color: Palette.foreground; }
+                            Text { text: "多选 " + root.multiple-count; color: Palette.foreground; }
+                            Text { text: "填空 " + root.blank-count; color: Palette.foreground; }
+                            Text { text: "判断 " + root.judge-count; color: Palette.foreground; }
+                            Text { text: "问答 " + root.essay-count; color: Palette.foreground; }
+                        }
+                    }
+                    HorizontalLayout {
+                        height: 38px;
+                        spacing: 8px;
+                        Button { text: "刷新"; clicked => { root.refresh(); } }
+                        Button { text: "导出 JSON…"; clicked => { root.export-json(); } }
+                        Button {
+                            text: "标记 / 取消当前行";
+                            enabled: root.selected-manage-row >= 0;
+                            clicked => { root.toggle-selected(root.selected-manage-row); }
+                        }
+                        Button {
+                            text: "删除已标记 (" + root.selected-count + ")";
+                            enabled: root.selected-count > 0;
+                            clicked => { root.confirm-delete = true; }
+                        }
+                        Button { text: "清空整个题库…"; clicked => { root.confirm-clear = true; } }
+                    }
+                    if root.confirm-delete: GroupBox {
+                        title: "确认删除";
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Text { text: "即将永久删除 " + root.selected-count + " 条已标记的题目。"; color: Palette.foreground; }
+                            Button { text: "取消"; clicked => { root.confirm-delete = false; } }
+                            Button {
+                                text: "确认删除";
+                                clicked => { root.delete-selected(); root.confirm-delete = false; }
+                            }
+                        }
+                    }
+                    if root.confirm-clear: GroupBox {
+                        title: "危险操作";
+                        HorizontalLayout {
+                            spacing: 10px;
+                            Text { text: "确认永久清空所有题目？"; color: Palette.foreground; }
+                            Button { text: "取消"; clicked => { root.confirm-clear = false; } }
+                            Button {
+                                text: "清空全部";
+                                clicked => { root.clear-all(); root.confirm-clear = false; }
+                            }
+                        }
+                    }
+                    GroupBox {
+                        title: "最近题目（勾号表示已标记）";
+                        vertical-stretch: 1;
+                        StandardTableView {
+                            columns: [
+                                { title: "标记", width: 55px },
+                                { title: "编号", width: 62px },
+                                { title: "题型", width: 75px },
+                                { title: "题目", width: 285px },
+                                { title: "正确答案", width: 150px },
+                            ];
+                            rows: root.manage-table-rows;
+                            current-row <=> root.selected-manage-row;
+                        }
+                    }
+                }
+            }
+
+            Tab {
+                title: "设置与服务";
+                VerticalLayout {
+                    spacing: 9px;
+                    Text { text: "设置"; color: Palette.foreground; font-size: 23px; font-weight: 650; }
+                    GroupBox {
+                        title: "应用外观";
+                        height: 79px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            Text { text: "颜色模式"; color: Palette.foreground; vertical-alignment: center; }
+                            ComboBox {
+                                width: 176px;
+                                model: ["跟随系统", "浅色", "深色"];
+                                current-index <=> root.theme-mode;
+                                selected(value) => {
+                                    root.apply-palette(root.theme-mode);
+                                    root.theme-changed(root.theme-mode);
+                                }
+                            }
+                            Text { text: "标准控件使用 Slint 官方 Material 样式"; color: Palette.foreground; vertical-alignment: center; }
+                        }
+                    }
+                    GroupBox {
+                        title: "本地题库接口";
+                        height: 148px;
+                        VerticalLayout {
+                            spacing: 10px;
+                            Text { text: root.service-state; color: Palette.foreground; }
+                            LineEdit {
+                                text: "http://127.0.0.1:8060/adapter-service/search";
+                                read-only: true;
+                            }
+                            Text {
+                                text: "仅监听本机回环地址，兼容 OCS / tikuAdapter 题库 API";
+                                color: Palette.foreground;
+                            }
+                        }
+                    }
+                    GroupBox {
+                        title: "数据库位置";
+                        height: 117px;
+                        VerticalLayout {
+                            spacing: 10px;
+                            LineEdit { text: root.database-path; read-only: true; }
+                            HorizontalLayout {
+                                Button { text: "打开目录"; clicked => { root.open-folder(); } }
                                 Rectangle { horizontal-stretch: 1; background: transparent; }
                             }
                         }
                     }
                     Rectangle { vertical-stretch: 1; background: transparent; }
                 }
-                Rectangle {
-                    height: 40px; background: root.card; border-radius: 8px;
-                    border-width: 1px; border-color: root.stroke;
-                    HorizontalLayout { padding-left: 13px; padding-right: 13px; spacing: 10px;
-                        Rectangle { width: 7px; height: 7px; border-radius: 4px; background: root.import-busy ? root.blue : root.success; }
-                        Text { text: root.status; color: root.secondary-text; vertical-alignment: center; font-size: 12px; overflow: elide; horizontal-stretch: 1; }
-                        if root.import-busy: ProgressIndicator { width: 20px; height: 20px; indeterminate: true; }
-                    }
-                }
             }
+        }
+
+        HorizontalLayout {
+            height: 28px;
+            spacing: 10px;
+            Text { text: root.status; color: Palette.foreground; font-size: 12px; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; background: transparent; }
+            Text { text: "API: 127.0.0.1:8060"; color: Palette.foreground; font-size: 11px; vertical-alignment: center; }
         }
     }
 }

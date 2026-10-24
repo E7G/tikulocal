@@ -1,6 +1,6 @@
 # TikuLocal — Native Rust Edition
 
-本分支从 commit `583fd341d463f6425cea8caefc656b1d7b361046` 开始迁移。纯 Rust 实现（不需要 Python 运行时），桌面 GUI 由 Slint 的 Fluent Design 控件实现（无需 Qt 或 Python 运行时），SQLite 数据格式尽量兼容旧版。
+本分支从 commit `583fd341d463f6425cea8caefc656b1d7b361046` 开始迁移。纯 Rust 实现（不需要 Python 运行时），桌面 GUI 使用 Slint 官方 Material 样式与标准控件实现（无需 Qt、WebView 或 Python 运行时），SQLite 数据格式尽量兼容旧版。
 
 ## 操作
 
@@ -24,15 +24,15 @@ cargo test
 cargo build --release
 ```
 
-GUI 使用 Slint 的 Fluent 2 控件，不依赖浏览器或 WebView。外观支持「跟随系统 / 浅色 / 深色」，并记住选择。Windows Release 使用 GUI 子系统，双击 .exe 不会弹出控制台；Debug 构建保留终端诊断信息。Windows 标题栏也会跟随主题变化。
+GUI 以 Slint 官方 `std-widgets.slint` 的 `material` 样式组件为主体：`TabWidget`、`GroupBox`、`StandardListView`、`StandardTableView`、`Button`、`LineEdit`、`ComboBox`、`TextEdit`。原先手写的 NavEntry、MetricCard、题目行委托已移除。导航改为官方横向选项卡；剩余 `Rectangle` 仅用作空白布局弹性占位。外观支持「跟随系统 / 浅色 / 深色」，并记住选择。Windows Release 使用 GUI 子系统，双击 .exe 不会弹出控制台；Debug 构建保留终端诊断信息。Windows 标题栏也会跟随主题变化。
 
 HTTP API 仅绑定本机回环地址；请勿将 API 代理公开到公网。
 
 ## 项目结构
 
 ```
-ui/app.slint    # Fluent Design 桌面界面
-build.rs        # Fluent 2 样式（支持系统/手动主题切换）
+ui/app.slint    # Material Design 桌面界面
+build.rs        # Material 样式（支持系统/手动主题切换）
 src/main.rs    # Rust GUI 交互与异步导入
 src/db.rs      # SQLite & 搜索
 src/import.rs  # DOCX/JSON
