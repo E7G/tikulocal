@@ -3,19 +3,82 @@ use serde_json::{json, Value};
 use std::{io::Read, path::PathBuf, thread};
 use tiny_http::{Header, Method, Response, Server, StatusCode};
 
+pub(crate) fn choice_indices(answer: &str, options: &[String]) -> Vec<usize> {
+    if options.is_empty() {
+        return Vec::new();
+    }
+    let trimmed = answer.trim();
+    let alphabet = trimmed
+        .chars()
+        .filter(|c| !matches!(c, ' ' | ',' | '，' | '、' | '；' | ';' | '#' | '/' | '&'))
+        .collect::<String>();
+    if !alphabet.is_empty()
+        && alphabet.chars().all(|c| {
+            c.is_ascii_alphabetic()
+                && (c.to_ascii_uppercase() as usize - 'A' as usize) < options.len()
+        })
+    {
+        let mut indices = Vec::new();
+        for ch in alphabet.chars() {
+            let i = ch.to_ascii_uppercase() as usize - 'A' as usize;
+            if i >= options.len() {
+                return Vec::new();
+            }
+            if !indices.contains(&i) {
+                indices.push(i);
+            }
+        }
+        return indices;
+    }
+    let mut indices = Vec::new();
+    for item in trimmed.split(['；', ';', ',', '，', '#']) {
+        let part = item.trim();
+        if part.is_empty() {
+            continue;
+        }
+        let text = db::normalized(part);
+        let mut match_index = None;
+        for (idx, opt) in options.iter().enumerate() {
+            let norm = db::normalized(opt);
+            if !norm.is_empty() && text == norm {
+                match_index = Some(idx);
+                break;
+            }
+        }
+        if match_index.is_none() {
+            let mut chars = part.chars();
+            if let Some(ch) = chars.next().filter(|ch| ch.is_ascii_alphabetic()) {
+                let prefix_rest = chars.as_str().trim_start_matches(|c: char| {
+                    matches!(c, '.' | '．' | '、' | ':' | '：' | ')' | '）' | ' ' | '-')
+                });
+                let idx = ch.to_ascii_uppercase() as usize - 'A' as usize;
+                if idx < options.len()
+                    && (prefix_rest.is_empty()
+                        || db::normalized(prefix_rest) == db::normalized(&options[idx]))
+                {
+                    match_index = Some(idx);
+                }
+            }
+        }
+        let Some(i) = match_index else {
+            return Vec::new();
+        };
+        if !indices.contains(&i) {
+            indices.push(i);
+        }
+    }
+    indices
+}
 fn answer_for(q: &Question) -> Value {
     let text = q.answer.trim();
     let mut keys = Vec::<String>::new();
     let mut indices = Vec::<usize>::new();
     let mut best = Vec::<String>::new();
     if q.kind == 0 || q.kind == 1 {
-        for ch in text.chars().filter(|c| c.is_ascii_alphabetic()) {
-            let index = ch.to_ascii_uppercase() as usize - 'A' as usize;
-            if index < q.options.len() {
-                keys.push(ch.to_ascii_uppercase().to_string());
-                indices.push(index);
-                best.push(q.options[index].clone());
-            }
+        indices = choice_indices(text, &q.options);
+        for &index in &indices {
+            keys.push(((b'A' + index as u8) as char).to_string());
+            best.push(q.options[index].clone());
         }
     } else if q.kind == 3 {
         let yes = matches!(text, "对" | "正确" | "A" | "true" | "True" | "√");
@@ -141,4 +204,35 @@ pub fn start(database: PathBuf) -> std::io::Result<()> {
         }
     });
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn choice_answers_never_guess_from_english_option_text() {
+        let opts = vec![
+            "Apple".to_string(),
+            "Banana".to_string(),
+            "Cherry".to_string(),
+        ];
+        assert_eq!(choice_indices("B", &opts), vec![1]);
+        assert_eq!(choice_indices("A,C", &opts), vec![0, 2]);
+        assert_eq!(choice_indices("B. Banana", &opts), vec![1]);
+        assert_eq!(choice_indices("Banana", &opts), vec![1]);
+        assert_eq!(choice_indices("Banana split", &opts), Vec::<usize>::new());
+    }
+    #[test]
+    fn adapter_response_exposes_answer_contract() {
+        let q = Question {
+            question: "Which fruit?".into(),
+            options: vec!["Apple".into(), "Banana".into()],
+            kind: 0,
+            answer: "B. Banana".into(),
+        };
+        let a = answer_for(&q);
+        assert_eq!(a["answerKeyText"], "B");
+        assert_eq!(a["answerIndex"], serde_json::json!([1]));
+        assert_eq!(a["bestAnswer"], serde_json::json!(["Banana"]));
+    }
 }
