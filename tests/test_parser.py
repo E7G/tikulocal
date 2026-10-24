@@ -275,6 +275,25 @@ class ExporterCompatibilityTests(unittest.TestCase):
         )
         self.assertEqual(questions, [])
 
+    def test_explicit_option_label_without_exported_options(self):
+        questions = self.parse_docx(
+            "【单选题】",
+            "图片选项所在题目",
+            "正确答案：B",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "B")
+        self.assertEqual(questions[0].options, [])
+
+    def test_judgement_labeled_full_answer(self):
+        questions = self.parse_docx(
+            "【判断题】",
+            "该陈述不正确",
+            "正确答案：B. 错误",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "错")
+
     def test_legacy_plain_text_parser(self):
         questions = self.parser.parse([
             "1 【单选题】",
