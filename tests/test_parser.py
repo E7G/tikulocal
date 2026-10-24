@@ -35,6 +35,21 @@ class QuestionParserTests(unittest.TestCase):
         self.assertEqual(questions[0].options, ["第一项", "第二项"])
         self.assertEqual(questions[0].answer, "B")
 
+    def test_docx_parser_reads_line_broken_options_and_answer(self):
+        document = Document()
+        document.add_paragraph("1 【单选题】")
+        document.add_paragraph("下列哪一项是示例题目？")
+        options_paragraph = document.add_paragraph()
+        options_paragraph.add_run("A. 第一项\nB、第二项\nC．第三项")
+        document.add_paragraph("正确答案：B")
+
+        questions = self.parser.parse_from_docx(document)
+
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].content, "下列哪一项是示例题目？")
+        self.assertEqual(questions[0].options, ["第一项", "第二项", "第三项"])
+        self.assertEqual(questions[0].answer, "B")
+
     def test_word_paragraph_with_line_breaks_reads_all_options(self):
         document = Document()
         paragraph = document.add_paragraph()
