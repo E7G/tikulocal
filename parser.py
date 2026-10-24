@@ -106,6 +106,15 @@ class QuestionParser:
         # put several logical lines in a single paragraph.
         return self._parse_records([para.text for para in doc.paragraphs])
 
+    def _extract_options_from_paragraph(self, para) -> List[str]:
+        """Compatibility helper used by Word option-parsing callers."""
+        options = []
+        for line in para.text.splitlines():
+            match = self._match_option(line.strip(), in_options=True)
+            if match:
+                options.append(match.group(2).strip())
+        return options
+
     def _match_question_header(self, text: str):
         match = HEADER_RE.match(text)
         if not match:
