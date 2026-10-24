@@ -248,6 +248,7 @@ class ImportPage(QWidget):
         self.import_btn.setFixedHeight(40)
         self.import_btn.setMinimumWidth(150)
         self.import_btn.clicked.connect(self.import_selected)
+        self.import_btn.setToolTip("仅导入具有明确正确答案的题目，个人作答和答题状态不作为答案。")
         self.import_btn.setEnabled(False)
         import_layout.addWidget(self.import_btn)
         import_card.addLayout(import_layout)
@@ -260,7 +261,7 @@ class ImportPage(QWidget):
         self.import_result_text.setMinimumHeight(120)
         result_card.addWidget(self.import_result_text)
 
-        tip = CaptionLabel("小提示：支持 .docx 和 .json；拖入多个文件不会立即导入，你可以先检查列表。")
+        tip = CaptionLabel("仅保存明确的正确答案；“我的答案”、答题状态和得分不会被当成答案。")
         layout.addWidget(tip)
         layout.addStretch()
 
@@ -361,14 +362,19 @@ class ImportPage(QWidget):
 
         for result in results:
             filename = os.path.basename(result["path"])
+            skipped = result.get("skipped", 0)
+            skipped_hint = f"；跳过 {skipped} 道缺少明确正确答案或无法可靠解析的题目" if skipped else ""
             if result["error"]:
                 lines.append(f"✗ {filename}：导入失败 — {result['error']}")
                 retry_paths.append(result["path"])
             elif result["count"] > 0:
-                lines.append(f"✓ {filename}：成功导入 {result['count']} 道题目")
+                lines.append(
+                    f"✓ {filename}：成功导入 {result['count']} 道有效题目{skipped_hint}"
+                )
             else:
                 lines.append(
-                    f"⚠ {filename}：没有导入题目。请检查题目格式，以及是否包含题目内容和正确答案。"
+                    f"⚠ {filename}：未导入题目{skipped_hint}。"
+                    "请检查文档是否明确给出“正确答案”，只有“我的答案”不会入库。"
                 )
                 retry_paths.append(result["path"])
 
@@ -767,15 +773,19 @@ class TikuApp(FluentWindow):
                 if not os.path.isfile(file_path):
                     raise FileNotFoundError("文件不存在或无法访问")
                 suffix = os.path.splitext(file_path)[1].lower()
+                skipped = 0
                 if suffix == ".docx":
                     count = self.import_from_docx(file_path)
+                    skipped = self.last_docx_stats.get("seen", 0) - count
                 elif suffix == ".json":
                     count = self.import_from_json(file_path)
                 else:
                     raise ValueError("不支持的文件格式，仅支持 .docx 和 .json")
-                results.append({"path": file_path, "count": count, "error": ""})
+                results.append({
+                    "path": file_path, "count": count, "skipped": skipped, "error": ""
+                })
             except Exception as error:
-                results.append({"path": file_path, "count": 0, "error": str(error)})
+                results.append({"path": file_path, "count": 0, "skipped": 0, "error": str(error)})
 
         if hasattr(self, "manage_page"):
             self.manage_page.refresh_list()
@@ -785,6 +795,7 @@ class TikuApp(FluentWindow):
         doc = Document(file_path)
         parser = QuestionParser()
         questions = parser.parse_from_docx(doc)
+        self.last_docx_stats = dict(parser.stats)
 
         rows = []
         for question in questions:
