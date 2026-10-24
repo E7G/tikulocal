@@ -460,8 +460,13 @@ class ManagePage(QWidget):
         btn_layout.addStretch()
         list_card.addLayout(btn_layout)
         
-        self.list_hint = CaptionLabel("显示最近 100 道题目；可按住 Ctrl / Shift 多选整行后删除。")
+        self.list_hint = CaptionLabel("显示最近 100 道题目；可在下方筛选，按住 Ctrl / Shift 多选整行后删除。")
         list_card.addWidget(self.list_hint)
+
+        self.filter_entry = LineEdit()
+        self.filter_entry.setPlaceholderText("筛选最近 100 道题目：输入题目、题型、选项或答案关键词")
+        self.filter_entry.setClearButtonEnabled(True)
+        list_card.addWidget(self.filter_entry)
 
         from qfluentwidgets import TableWidget
         self.table = TableWidget(self)
@@ -479,6 +484,7 @@ class ManagePage(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.filter_entry.textChanged.connect(self.filter_table)
         list_card.addWidget(self.table)
     
     def create_stat_card(self, title, value, color):
@@ -502,7 +508,30 @@ class ManagePage(QWidget):
     def refresh_list(self):
         if self.parent_window:
             self.parent_window.refresh_question_list(self.table, self.total_card, self.single_card, self.multi_card, self.judge_card)
-    
+            self.filter_table(self.filter_entry.text())
+
+    def filter_table(self, text=""):
+        keyword = normalize_text(text)
+        self.table.clearSelection()
+        visible_count = 0
+        for row in range(self.table.rowCount()):
+            row_text = " ".join(
+                self.table.item(row, column).text()
+                for column in range(self.table.columnCount())
+                if self.table.item(row, column) is not None
+            )
+            visible = not keyword or keyword in normalize_text(row_text)
+            self.table.setRowHidden(row, not visible)
+            if visible:
+                visible_count += 1
+
+        if self.table.rowCount() == 0:
+            self.list_hint.setText("当前题库为空，请先到“导入题库”首页添加题目。")
+        else:
+            self.list_hint.setText(
+                f"最近 100 道题目中匹配 {visible_count} 道；按住 Ctrl / Shift 可多选整行后删除。"
+            )
+
     def delete_selected(self):
         if self.parent_window:
             self.parent_window.delete_selected(self.table)
@@ -623,10 +652,11 @@ class TikuApp(FluentWindow):
             all_questions = cursor.fetchall()
 
         if not all_questions:
-            result_widget.setPlainText(
-                "题库中还没有可搜索的题目。\n\n"
-                "请先在“导入题库”首页导入 Word 或 JSON 文件，再回来搜索。"
-            )
+            if question_type == -1:
+                message = "题库中还没有可搜索的题目。\n\n请先在“导入题库”首页导入 Word 或 JSON 文件，再回来搜索。"
+            else:
+                message = "当前题型下没有题目。\n\n请切换到“全部类型”，或先导入题库。"
+            result_widget.setPlainText(message)
             return
 
         scored_results = []
@@ -809,7 +839,7 @@ class TikuApp(FluentWindow):
             if isinstance(answer_value, list):
                 answer = "".join(str(part).strip() for part in answer_value)
             else:
-                answer = str(answer_value or "").strip()
+                answer = str(answer_value if answer_value is not None else "").strip()
 
             options = item.get("options", [])
             if isinstance(options, str):
@@ -1038,12 +1068,9 @@ class TikuApp(FluentWindow):
         app = Flask(__name__)
         app_instance = self
         
-        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
-        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
-        
         def remove_punctuation(text):
-            return text.translate(str.maketrans('', '', all_punctuation))
-        
+            return normalize_text(text)
+
         @app.route('/')
         def index():
             return '''<html><head><title>题库适配器 API</title></head>
