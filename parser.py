@@ -122,7 +122,8 @@ class QuestionParser:
         # Avoid identifying ordinary words that happen to begin with a type name.
         if match.group(3) and not (
             re.match(r"^\s*(?:\d+|第|[【\[\(（])", text)
-            or re.match(r"^\s*(" + TYPE_PATTERN + r")\s*[:：]", text)
+            or re.match(r"^\s*(" + TYPE_PATTERN + r")\s*[:：(（]", text)
+            or re.match(r"^\s*(" + TYPE_PATTERN + r")\s+第\s*\d+", text)
         ):
             return None
         return match
@@ -146,6 +147,7 @@ class QuestionParser:
         in_options = False
         in_analysis = False
         has_explicit_correct_answer = False
+        awaiting_correct_answer = False
 
         def create_question(number=None, question_type=None):
             return Question(
@@ -156,7 +158,7 @@ class QuestionParser:
             )
 
         def finalize():
-            nonlocal current, in_options, in_analysis, has_explicit_correct_answer
+            nonlocal current, in_options, in_analysis, has_explicit_correct_answer, awaiting_correct_answer
             if current is None:
                 return
             self.stats["seen"] += 1
@@ -180,6 +182,7 @@ class QuestionParser:
             in_options = False
             in_analysis = False
             has_explicit_correct_answer = False
+            awaiting_correct_answer = False
 
         for paragraph in paragraphs:
             if paragraph is None:
@@ -207,7 +210,7 @@ class QuestionParser:
                         int(number_text) if number_text else None, TYPE_NAMES[type_text]
                     )
                     remainder = remainder.strip()
-                    if remainder:
+                    if remainder and not re.fullmatch(r"[（(][^）)]*(?:分|题号)[^）)]*[）)]", remainder):
                         current.content = remainder
                     in_options = False
                     in_analysis = False
@@ -222,6 +225,7 @@ class QuestionParser:
                 if correct:
                     current.answer = correct.group(1).strip()
                     has_explicit_correct_answer = True
+                    awaiting_correct_answer = not bool(current.answer)
                     in_options = False
                     in_analysis = False
                     continue
@@ -251,6 +255,13 @@ class QuestionParser:
 
                 if in_analysis:
                     continue
+
+                if awaiting_correct_answer:
+                    if not re.match(r"^(?:我的答案|答案状态|得分|选项)\s*[:：]", line):
+                        current.answer = line
+                        awaiting_correct_answer = False
+                        continue
+                    awaiting_correct_answer = False
 
                 if re.fullmatch(r"选项\s*[:：]", line):
                     in_options = True
