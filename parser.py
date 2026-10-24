@@ -290,6 +290,7 @@ class QuestionParser:
         answer = _unify_option_label(answer)
         if question.question_type == QuestionType.TRUE_FALSE:
             normalized = answer.casefold().strip()
+            normalized = re.sub(r"^[ab]\s*[.．、:：)）]\s*", "", normalized)
             if normalized in {"对", "正确", "是", "√", "true", "t", "a"}:
                 return "对"
             if normalized in {"错", "错误", "否", "×", "false", "f", "b"}:
@@ -331,7 +332,12 @@ class QuestionParser:
 
     @staticmethod
     def _choice_answer_keys(answer: str, options: List[str]) -> List[str]:
+        # Some exporter pages expose the correct option label but not the option
+        # content. The explicit label is still usable as an answer.
         if not options:
+            cleaned = re.sub(r"[\s,，、;；/&＋+]+", "", answer.upper())
+            if re.fullmatch(r"[A-Z]+", cleaned):
+                return list(dict.fromkeys(cleaned))
             return []
         max_label = min(26, len(options))
         valid_keys = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ"[:max_label])
