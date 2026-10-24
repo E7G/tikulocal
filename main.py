@@ -7,8 +7,9 @@ import threading
 import string
 from flask import Flask, request, jsonify
 from docx import Document
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QStackedWidget, QTableWidgetItem, QFileDialog)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                             QStackedWidget, QTableWidgetItem, QFileDialog,
+                             QAbstractItemView, QListWidget, QListWidgetItem)
 from PyQt5.QtCore import Qt, QPropertyAnimation, QRect, QEasingCurve
 from PyQt5.QtGui import QFont, QColor, QPainter, QBrush, QLinearGradient
 from qfluentwidgets import (NavigationInterface, FluentIcon,
@@ -18,6 +19,15 @@ from qfluentwidgets import (NavigationInterface, FluentIcon,
                             TableWidget, setTheme, Theme, setThemeColor, MessageBox,
                             FluentWindow, NavigationItemPosition)
 from parser import QuestionParser
+
+
+NORMALIZATION_PUNCTUATION = string.punctuation + '，。！？；：""''【】（）《》〈〉〔〕｛｝ \t\n\r\u3000\u00a0'
+NORMALIZATION_TRANSLATION = str.maketrans('', '', NORMALIZATION_PUNCTUATION)
+
+
+def normalize_text(value):
+    """Normalize text consistently for desktop search, API search and imports."""
+    return str(value or '').casefold().translate(NORMALIZATION_TRANSLATION)
 
 
 def apply_system_theme(app):
@@ -105,7 +115,8 @@ class SearchPage(QWidget):
         self.question_entry = LineEdit()
         self.question_entry.setPlaceholderText("请输入题目关键词...")
         self.question_entry.setClearButtonEnabled(True)
-        
+        self.question_entry.returnPressed.connect(self.search_question)
+
         question_layout.addWidget(question_label)
         question_layout.addWidget(self.question_entry)
         search_card.addLayout(question_layout)
@@ -131,7 +142,8 @@ class SearchPage(QWidget):
         search_btn.setFixedHeight(38)
         search_btn.setFixedWidth(120)
         search_btn.clicked.connect(self.search_question)
-        
+        search_btn.setDefault(True)
+
         button_layout.addWidget(search_btn)
         search_card.addLayout(button_layout)
         
@@ -149,169 +161,241 @@ class SearchPage(QWidget):
             self.parent_window.search_question(self.question_entry.text(), self.type_combo.currentText(), self.result_text)
 
 
+class FileDropList(QListWidget):
+    """A file list that accepts external .docx/.json files by drag and drop."""
+
+    def __init__(self, on_files_dropped, parent=None):
+        super().__init__(parent)
+        self.on_files_dropped = on_files_dropped
+        self.setAcceptDrops(True)
+        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.setMinimumHeight(180)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()]
+        if paths:
+            self.on_files_dropped(paths)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+
 class ImportPage(QWidget):
+    """Home page: select, review and import one or many question-bank files."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ImportPage")
         self.parent_window = parent
+        self.selected_files = []
         self.initUI()
-        self.setAcceptDrops(True)
-    
+
     def initUI(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 30, 40, 30)
-        layout.setSpacing(20)
-        
+        layout.setContentsMargins(32, 24, 32, 24)
+        layout.setSpacing(16)
+
         header_layout = QVBoxLayout()
-        header_layout.setSpacing(8)
-        
-        title = TitleLabel("导入题库")
-        subtitle = CaptionLabel("支持Word文档和JSON格式导入，可拖拽文件到此处")
-        
-        header_layout.addWidget(title)
-        header_layout.addWidget(subtitle)
+        header_layout.setSpacing(6)
+        header_layout.addWidget(TitleLabel("导入题库"))
+        header_layout.addWidget(CaptionLabel(
+            "把 Word 或 JSON 题库添加到这里。支持多选和拖拽，确认清单后再统一导入。"
+        ))
         layout.addLayout(header_layout)
-        
-        import_card = ModernCard("文件导入")
+
+        import_card = ModernCard("选择题库文件")
         layout.addWidget(import_card)
-        
-        type_layout = QHBoxLayout()
-        type_layout.setSpacing(12)
-        
-        type_label = BodyLabel("导入方式")
-        type_label.setFixedWidth(80)
-        
-        self.import_type_combo = ComboBox()
-        self.import_type_combo.addItems(['Word文档 (.docx)', 'JSON文件 (.json)'])
-        
-        type_layout.addWidget(type_label)
-        type_layout.addWidget(self.import_type_combo)
-        type_layout.addStretch()
-        import_card.addLayout(type_layout)
-        
-        path_layout = QHBoxLayout()
-        path_layout.setSpacing(12)
-        
-        path_label = BodyLabel("文件路径")
-        path_label.setFixedWidth(80)
-        
-        self.file_path_edit = LineEdit()
-        self.file_path_edit.setPlaceholderText("请选择要导入的文件，或拖拽文件到此处...")
-        self.file_path_edit.setClearButtonEnabled(True)
-        
-        browse_btn = PushButton("浏览...")
-        browse_btn.setFixedWidth(80)
-        browse_btn.clicked.connect(self.browse_file)
-        
-        path_layout.addWidget(path_label)
-        path_layout.addWidget(self.file_path_edit)
-        path_layout.addWidget(browse_btn)
-        import_card.addLayout(path_layout)
-        
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        
-        import_btn = PrimaryPushButton("开始导入")
-        import_btn.setFixedHeight(38)
-        import_btn.setFixedWidth(120)
-        import_btn.clicked.connect(self.import_file)
-        
-        button_layout.addWidget(import_btn)
-        import_card.addLayout(button_layout)
-        
+
+        action_layout = QHBoxLayout()
+        action_layout.setSpacing(8)
+
+        browse_btn = PrimaryPushButton("选择文件（可多选）")
+        browse_btn.clicked.connect(self.browse_files)
+        remove_btn = PushButton("移除选中")
+        remove_btn.clicked.connect(self.remove_selected)
+        self.clear_btn = PushButton("清空列表")
+        self.clear_btn.clicked.connect(self.clear_files)
+
+        action_layout.addWidget(browse_btn)
+        action_layout.addWidget(remove_btn)
+        action_layout.addWidget(self.clear_btn)
+        action_layout.addStretch()
+        import_card.addLayout(action_layout)
+
+        self.file_list = FileDropList(self.add_files, self)
+        self.file_list.setToolTip("将 .docx 或 .json 文件拖到这里，也可以点击上方按钮多选文件。")
+        self.file_list.itemSelectionChanged.connect(self._update_selection_summary)
+        import_card.addWidget(self.file_list)
+
+        self.selection_summary = CaptionLabel("尚未选择文件。可一次导入多个 Word / JSON 文件。")
+        import_card.addWidget(self.selection_summary)
+
+        import_layout = QHBoxLayout()
+        import_layout.addStretch()
+        self.import_btn = PrimaryPushButton("导入全部文件")
+        self.import_btn.setFixedHeight(40)
+        self.import_btn.setMinimumWidth(150)
+        self.import_btn.clicked.connect(self.import_selected)
+        self.import_btn.setEnabled(False)
+        import_layout.addWidget(self.import_btn)
+        import_card.addLayout(import_layout)
+
         result_card = ModernCard("导入结果")
         layout.addWidget(result_card)
-        
         self.import_result_text = TextEdit()
         self.import_result_text.setReadOnly(True)
+        self.import_result_text.setPlaceholderText("导入后会在这里显示每个文件的处理结果。")
+        self.import_result_text.setMinimumHeight(120)
         result_card.addWidget(self.import_result_text)
-        
+
+        tip = CaptionLabel("小提示：支持 .docx 和 .json；拖入多个文件不会立即导入，你可以先检查列表。")
+        layout.addWidget(tip)
         layout.addStretch()
-    
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.accept()
-        else:
-            event.ignore()
-    
-    def dropEvent(self, event):
-        files = [u.toLocalFile() for u in event.mimeData().urls()]
-        
-        if not files:
-            return
-        
-        valid_files = []
-        for file_path in files:
-            if file_path.endswith('.docx') or file_path.endswith('.json'):
-                valid_files.append(file_path)
-        
-        if not valid_files:
+
+    def browse_files(self):
+        paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            "选择题库文件",
+            "",
+            "题库文件 (*.docx *.json);;Word 文档 (*.docx);;JSON 文件 (*.json)"
+        )
+        if paths:
+            self.add_files(paths)
+
+    def add_files(self, paths):
+        invalid_count = 0
+        for path in paths:
+            if not path:
+                continue
+            suffix = os.path.splitext(path)[1].lower()
+            if suffix not in (".docx", ".json"):
+                invalid_count += 1
+                continue
+            normalized_path = os.path.abspath(path)
+            existing = {os.path.normcase(p) for p in self.selected_files}
+            if os.path.normcase(normalized_path) not in existing:
+                self.selected_files.append(normalized_path)
+
+        self._render_file_list()
+        if invalid_count:
             InfoBar.warning(
-                title='提示',
-                content='请拖入 .docx 或 .json 文件',
+                title="已忽略不支持的文件",
+                content=f"{invalid_count} 个文件不是 .docx 或 .json 格式。",
+                parent=self,
+                duration=2500
+            )
+
+    def _render_file_list(self):
+        self.file_list.clear()
+        for path in self.selected_files:
+            suffix = os.path.splitext(path)[1].lower()
+            kind = "Word 文档" if suffix == ".docx" else "JSON 文件"
+            item = QListWidgetItem(f"{os.path.basename(path)}    ·    {kind}")
+            item.setData(Qt.UserRole, path)
+            item.setToolTip(path)
+            self.file_list.addItem(item)
+        self._update_selection_summary()
+
+    def _update_selection_summary(self):
+        count = len(self.selected_files)
+        selected_count = len(self.file_list.selectedItems())
+        if count:
+            self.selection_summary.setText(
+                f"待导入 {count} 个文件；当前选中 {selected_count} 个。"
+                "双击文件名不会立即导入，请点击“导入全部文件”。"
+            )
+        else:
+            self.selection_summary.setText("尚未选择文件。可一次导入多个 Word / JSON 文件。")
+        self.import_btn.setEnabled(count > 0)
+        self.clear_btn.setEnabled(count > 0)
+
+    def remove_selected(self):
+        selected_items = self.file_list.selectedItems()
+        if not selected_items:
+            InfoBar.warning(
+                title="提示",
+                content="请先在文件列表中选择要移除的文件。",
                 parent=self,
                 duration=2000
             )
             return
-        
-        if len(valid_files) == 1:
-            self.file_path_edit.setText(valid_files[0])
-            if valid_files[0].endswith('.docx'):
-                self.import_type_combo.setCurrentIndex(0)
-            else:
-                self.import_type_combo.setCurrentIndex(1)
-        else:
-            self.import_multiple_files(valid_files)
-    
-    def import_multiple_files(self, files):
-        if self.parent_window:
-            total_count = 0
-            failed_files = []
-            
-            for file_path in files:
-                try:
-                    if file_path.endswith('.docx'):
-                        count = self.parent_window.import_from_docx(file_path)
-                    else:
-                        count = self.parent_window.import_from_json(file_path)
-                    total_count += count
-                except Exception as e:
-                    failed_files.append(os.path.basename(file_path))
-            
-            result_text = f"批量导入完成！\n成功导入 {total_count} 道题目"
-            if failed_files:
-                result_text += f"\n\n失败文件：\n" + "\n".join(failed_files)
-            
-            self.import_result_text.setText(result_text)
-            
-            if total_count > 0:
-                InfoBar.success(
-                    title='成功',
-                    content=f'成功导入 {total_count} 道题目',
-                    parent=self,
-                    duration=2000
-                )
-            
-            if failed_files:
-                InfoBar.warning(
-                    title='警告',
-                    content=f'{len(failed_files)} 个文件导入失败',
-                    parent=self,
-                    duration=2000
-                )
-    
-    def browse_file(self):
-        if self.parent_window:
-            self.parent_window.browse_file(self.import_type_combo.currentText(), self.file_path_edit)
-    
-    def import_file(self):
-        if self.parent_window:
-            self.parent_window.import_file(
-                self.import_type_combo.currentText(),
-                self.file_path_edit.text(),
-                self.import_result_text
-            )
+        remove_paths = {item.data(Qt.UserRole) for item in selected_items}
+        self.selected_files = [path for path in self.selected_files if path not in remove_paths]
+        self._render_file_list()
 
+    def clear_files(self):
+        self.selected_files = []
+        self._render_file_list()
+
+    def import_selected(self):
+        if not self.selected_files:
+            InfoBar.warning(
+                title="还没有选择文件",
+                content="请先选择文件，或把 .docx / .json 文件拖到列表中。",
+                parent=self,
+                duration=2200
+            )
+            return
+
+        results = self.parent_window.import_files(list(self.selected_files))
+        total_questions = sum(result["count"] for result in results)
+        retry_paths = []
+        lines = [
+            f"本次处理 {len(results)} 个文件，共导入 {total_questions} 道题目。",
+            ""
+        ]
+
+        for result in results:
+            filename = os.path.basename(result["path"])
+            if result["error"]:
+                lines.append(f"✗ {filename}：导入失败 — {result['error']}")
+                retry_paths.append(result["path"])
+            elif result["count"] > 0:
+                lines.append(f"✓ {filename}：成功导入 {result['count']} 道题目")
+            else:
+                lines.append(
+                    f"⚠ {filename}：没有导入题目。请检查题目格式，以及是否包含题目内容和正确答案。"
+                )
+                retry_paths.append(result["path"])
+
+        self.import_result_text.setPlainText("\n".join(lines))
+        # Keep failed/empty files in the queue so the user can correct or retry them.
+        self.selected_files = retry_paths
+        self._render_file_list()
+
+        if total_questions:
+            InfoBar.success(
+                title="导入完成",
+                content=f"共导入 {total_questions} 道题目。",
+                parent=self,
+                duration=2500
+            )
+        if retry_paths:
+            InfoBar.warning(
+                title="部分文件需要检查",
+                content=f"{len(retry_paths)} 个文件未成功导入，可查看下方结果。",
+                parent=self,
+                duration=3000
+            )
+        elif not total_questions:
+            InfoBar.warning(
+                title="没有导入题目",
+                content="请检查文件内容和题目格式后重试。",
+                parent=self,
+                duration=2500
+            )
 
 class ManagePage(QWidget):
     def __init__(self, parent=None):
@@ -374,7 +458,9 @@ class ManagePage(QWidget):
         btn_layout.addStretch()
         list_card.addLayout(btn_layout)
         
-        from qfluentwidgets import TableWidget
+        self.list_hint = CaptionLabel("显示最近 100 道题目；可按住 Ctrl / Shift 多选整行后删除。")
+        list_card.addWidget(self.list_hint)
+
         self.table = TableWidget(self)
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(['ID', '题目内容', '题型', '选项', '答案', '导入时间'])
@@ -384,6 +470,12 @@ class ManagePage(QWidget):
         self.table.setColumnWidth(3, 200)
         self.table.setColumnWidth(4, 100)
         self.table.setColumnWidth(5, 120)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setStretchLastSection(True)
         list_card.addWidget(self.table)
     
     def create_stat_card(self, title, value, color):
@@ -414,451 +506,41 @@ class ManagePage(QWidget):
             self.refresh_list()
     
     def clear_all(self):
-        if self.parent_window:
-            self.parent_window.clear_all()
-            self.refresh_list()
+        with sqlite3.connect(self.db_path) as conn:
+            count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+        if count == 0:
+            InfoBar.information(
+                title="题库已经为空",
+                content="当前没有需要清空的题目。",
+                parent=self,
+                duration=2000
+            )
+            return
 
-
-class TikuApp(FluentWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("题库适配器")
-        self.resize(1000, 750)
-        
-        if getattr(sys, 'frozen', False):
-            base_path = os.path.dirname(sys.executable)
-        else:
-            base_path = os.path.dirname(os.path.abspath(__file__))
-        self.db_path = os.path.join(base_path, "tiku.db")
-        self.init_database()
-        
-        self.search_page = SearchPage(self)
-        self.import_page = ImportPage(self)
-        self.manage_page = ManagePage(self)
-        
-        self.addSubInterface(self.search_page, FluentIcon.SEARCH, '搜索题目')
-        self.addSubInterface(self.import_page, FluentIcon.DOWNLOAD, '导入题库')
-        self.addSubInterface(self.manage_page, FluentIcon.SETTING, '题库管理')
-        
-        self.start_http_server()
-    
-    def init_database(self):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question TEXT NOT NULL,
-            options TEXT,
-            type INTEGER NOT NULL,
-            answer TEXT NOT NULL,
-            search_question TEXT,
-            search_options TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        message_box = MessageBox(
+            "确认清空题库",
+            f"当前共有 {count} 道题目。确定全部删除吗？此操作无法撤销。",
+            self
         )
-        ''')
-        
-        try:
-            cursor.execute("SELECT search_question FROM questions LIMIT 1")
-        except:
-            cursor.execute("ALTER TABLE questions ADD COLUMN search_question TEXT")
-        
-        try:
-            cursor.execute("SELECT search_options FROM questions LIMIT 1")
-        except:
-            cursor.execute("ALTER TABLE questions ADD COLUMN search_options TEXT")
-        
-        conn.commit()
-        
-        import string
-        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
-        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
+        if message_box.exec() != MessageBox.Accepted:
+            return
 
-        def remove_punctuation(text):
-            return text.translate(str.maketrans('', '', all_punctuation))
-        
-        cursor.execute("SELECT id, question, options FROM questions WHERE search_question IS NULL OR search_question = ''")
-        rows_to_update = cursor.fetchall()
-        for row in rows_to_update:
-            qid, qquestion, qoptions = row
-            search_q = remove_punctuation(qquestion) if qquestion else ''
-            search_o = remove_punctuation(qoptions) if qoptions else ''
-            cursor.execute("UPDATE questions SET search_question = ?, search_options = ? WHERE id = ?", (search_q, search_o, qid))
-        
-        conn.commit()
-        conn.close()
-    
-    def search_question(self, question_text, type_text, result_widget):
-        import string
-        
-        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
-        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
-        
-        def remove_punctuation(text):
-            return text.translate(str.maketrans('', '', all_punctuation))
-        
-        if not question_text.strip():
-            InfoBar.warning(
-                title='提示',
-                content='请输入题目内容',
-                parent=self,
-                duration=2000
-            )
-            return
-        
-        type_map = {'全部类型': -1, '单选题': 0, '多选题': 1, '填空题': 2, '判断题': 3, '问答题': 4}
-        type_text_map = {0: '单选题', 1: '多选题', 2: '填空题', 3: '判断题', 4: '问答题'}
-        type_ = type_map.get(type_text, -1)
-        
-        clean_search = remove_punctuation(question_text)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        if type_ == -1:
-            cursor.execute(
-                "SELECT question, options, type, answer, search_question, search_options FROM questions"
-            )
-        else:
-            cursor.execute(
-                "SELECT question, options, type, answer, search_question, search_options FROM questions WHERE type = ?",
-                (type_,)
-            )
-        
-        all_questions = cursor.fetchall()
-        conn.close()
-        
-        results = []
-        for q in all_questions:
-            db_search_question = q[4] if len(q) > 4 else ''
-            db_search_options = q[5] if len(q) > 5 else ''
-            
-            if db_search_question and (clean_search in db_search_question or db_search_question in clean_search):
-                results.append(q)
-                continue
-            
-            if db_search_options:
-                if clean_search in db_search_options:
-                    results.append(q)
-                    continue
-        
-        if not results:
-            result_widget.setText("未找到相关题目")
-            return
-        
-        output_lines = []
-        output_lines.append(f"共找到 {len(results)} 道相关题目：")
-        output_lines.append("")
-        
-        for i, r in enumerate(results, 1):
-            question = r[0]
-            options_json = r[1]
-            db_type = r[2]
-            answer_text = r[3]
-            
-            try:
-                options = json.loads(options_json) if options_json else []
-            except:
-                options = []
-            
-            output_lines.append(f"【{i}】{type_text_map.get(db_type, '未知题型')} - 答案：{answer_text}")
-            output_lines.append(f"题目：{question}")
-            
-            if options:
-                output_lines.append("选项：")
-                for j, opt in enumerate(options):
-                    label = chr(65 + j) if j < 26 else str(j)
-                    output_lines.append(f"  {label}. {opt}")
-            
-            output_lines.append("")
-        
-        result_widget.setText("\n".join(output_lines))
-    
-    def browse_file(self, type_text, path_widget):
-        if 'Word' in type_text:
-            file_path, _ = QFileDialog.getOpenFileName(self, "选择Word文件", "", "Word文档 (*.docx);;所有文件 (*.*)")
-        else:
-            file_path, _ = QFileDialog.getOpenFileName(self, "选择JSON文件", "", "JSON文件 (*.json);;所有文件 (*.*)")
-        
-        if file_path:
-            path_widget.setText(file_path)
-    
-    def import_file(self, type_text, file_path, result_widget):
-        if not file_path.strip():
-            InfoBar.warning(
-                title='提示',
-                content='请选择文件',
-                parent=self,
-                duration=2000
-            )
-            return
-        
-        if not os.path.exists(file_path):
-            InfoBar.error(
-                title='错误',
-                content='文件不存在',
-                parent=self,
-                duration=2000
-            )
-            return
-        
-        try:
-            if 'Word' in type_text:
-                count = self.import_from_docx(file_path)
-            else:
-                count = self.import_from_json(file_path)
-            
-            result_widget.setText(f"成功导入 {count} 道题目")
-            InfoBar.success(
-                title='成功',
-                content=f'成功导入 {count} 道题目',
-                parent=self,
-                duration=2000
-            )
-        except Exception as e:
-            result_widget.setText(f"导入失败: {str(e)}")
-            InfoBar.error(
-                title='错误',
-                content=f'导入失败: {str(e)}',
-                parent=self,
-                duration=3000
-            )
-    
-    def import_from_docx(self, file_path):
-        import string
-        
-        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
-        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
-        
-        def remove_punctuation(text):
-            return text.translate(str.maketrans('', '', all_punctuation))
-        
-        doc = Document(file_path)
-        
-        parser = QuestionParser()
-        questions = parser.parse_from_docx(doc)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        count = 0
-        for q in questions:
-            if q.answer:
-                options_json = json.dumps(q.options) if q.options else '[]'
-                search_question = remove_punctuation(q.content)
-                search_options = remove_punctuation(options_json)
-                cursor.execute(
-                    "INSERT INTO questions (question, options, type, answer, search_question, search_options) VALUES (?, ?, ?, ?, ?, ?)",
-                    (q.content, options_json, q.question_type.value, q.answer, search_question, search_options)
-                )
-                count += 1
-        
-        conn.commit()
-        conn.close()
-        
-        return count
-    
-    def import_from_json(self, file_path):
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        count = 0
-        for item in data:
-            question = item.get('question', '')
-            options = item.get('options', [])
-            type_ = item.get('type', 0)
-            answer = item.get('answer', '')
-            
-            if question and answer:
-                options_json = json.dumps(options)
-                cursor.execute(
-                    "INSERT INTO questions (question, options, type, answer) VALUES (?, ?, ?, ?)",
-                    (question, options_json, type_, answer)
-                )
-                count += 1
-        
-        conn.commit()
-        conn.close()
-        
-        return count
-    
-    def build_answer(self, answer_text, options, question_type):
-        answer = {
-            "answerKey": [],
-            "answerKeyText": "",
-            "answerIndex": [],
-            "answerText": answer_text,
-            "bestAnswer": [],
-            "allAnswer": [[]]
-        }
-        
-        if question_type in [0, 1]:
-            answer_keys = re.findall(r'[A-Za-z]', answer_text)
-            answer["answerKey"] = answer_keys
-            answer["answerKeyText"] = ''.join(answer_keys)
-            
-            answer["answerIndex"] = [ord(key.upper()) - ord('A') for key in answer_keys if ord(key.upper()) - ord('A') < len(options)]
-            
-            best_answers = []
-            for key in answer_keys:
-                idx = ord(key.upper()) - ord('A')
-                if idx < len(options):
-                    best_answers.append(options[idx])
-            
-            if best_answers:
-                answer["bestAnswer"] = best_answers
-                answer["answerText"] = '#'.join(best_answers)
-                format1 = best_answers
-                format2 = [f"{key}{options[ord(key.upper()) - ord('A')]}" for key in answer_keys if ord(key.upper()) - ord('A') < len(options)]
-                answer["allAnswer"] = [format1, format2] if format2 else [format1]
-            else:
-                answer["bestAnswer"] = [answer_text]
-                answer["allAnswer"] = [[answer_text]]
-        
-        elif question_type == 2:
-            if '；' in answer_text:
-                fill_answers = [ans.strip() for ans in answer_text.split('；') if ans.strip()]
-                answer["bestAnswer"] = fill_answers
-                answer["allAnswer"] = [fill_answers]
-                answer["answerText"] = answer_text
-            else:
-                answer["bestAnswer"] = [answer_text]
-                answer["allAnswer"] = [[answer_text]]
-        
-        elif question_type == 3:
-            answer["answerKey"] = [answer_text] if answer_text in ['对', '错', '正确', '错误', 'A', 'B'] else []
-            answer["answerKeyText"] = answer["answerKey"][0] if answer["answerKey"] else ''
-            
-            if answer_text in ['对', '正确', 'A']:
-                answer["answerIndex"] = [0] if len(options) > 0 else []
-                answer["bestAnswer"] = [options[0]] if len(options) > 0 else ['对']
-                answer["allAnswer"] = [answer["bestAnswer"]]
-            elif answer_text in ['错', '错误', 'B']:
-                answer["answerIndex"] = [1] if len(options) > 1 else []
-                answer["bestAnswer"] = [options[1]] if len(options) > 1 else ['错']
-                answer["allAnswer"] = [answer["bestAnswer"]]
-        
-        return answer
-    
-    def refresh_question_list(self, table, total_card, single_card, multi_card, judge_card):
-        table.clearContents()
-        table.setRowCount(0)
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM questions")
-        total = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 0")
-        single = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 1")
-        multi = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 3")
-        judge = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT id, question, type, options, answer, created_at FROM questions ORDER BY created_at DESC LIMIT 100")
-        
-        type_map = {0: '单选题', 1: '多选题', 2: '填空题', 3: '判断题', 4: '问答题'}
-        
-        for row in cursor.fetchall():
-            question_text = row[1][:60] + '...' if len(row[1]) > 60 else row[1]
-            
-            try:
-                options = json.loads(row[3]) if row[3] else []
-                options_text = '; '.join([f"{chr(65+i)}.{opt}" for i, opt in enumerate(options[:3])])
-                if len(options) > 3:
-                    options_text += '...'
-            except:
-                options_text = ''
-            
-            answer_text = row[4][:20] + '...' if row[4] and len(row[4]) > 20 else (row[4] if row[4] else '')
-            
-            row_items = [QTableWidgetItem(str(row[0])), 
-                        QTableWidgetItem(question_text),
-                        QTableWidgetItem(type_map.get(row[2], '未知')),
-                        QTableWidgetItem(options_text),
-                        QTableWidgetItem(answer_text),
-                        QTableWidgetItem(row[5])]
-            table.insertRow(table.rowCount())
-            for col, item in enumerate(row_items):
-                table.setItem(table.rowCount() - 1, col, item)
-        
-        conn.close()
-        
-        for card, value in [(total_card, total), (single_card, single), (multi_card, multi), (judge_card, judge)]:
-            layout = card.layout()
-            if layout and layout.count() >= 2:
-                value_item = layout.itemAt(1)
-                if value_item and value_item.widget():
-                    value_item.widget().setText(str(value))
-    
-    def delete_selected(self, table):
-        selected = table.selectedItems()
-        if not selected:
-            InfoBar.warning(
-                title='提示',
-                content='请选择要删除的题目',
-                parent=self,
-                duration=2000
-            )
-            return
-        
-        messageBox = MessageBox("确认", "确定要删除选中的题目吗？", self)
-        if messageBox.exec() != MessageBox.Accepted:
-            return
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        rows = set(item.row() for item in selected)
-        for row in rows:
-            id_item = table.item(row, 0)
-            if id_item:
-                cursor.execute("DELETE FROM questions WHERE id = ?", (id_item.text(),))
-        
-        conn.commit()
-        conn.close()
-        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("DELETE FROM questions")
+
         InfoBar.success(
-            title='成功',
-            content='删除成功',
+            title="清空完成",
+            content=f"已清空 {count} 道题目。",
             parent=self,
-            duration=2000
+            duration=2200
         )
-    
-    def clear_all(self):
-        messageBox = MessageBox("确认", "确定要清空整个题库吗？此操作不可恢复！", self)
-        if messageBox.exec() != MessageBox.Accepted:
-            return
-        
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM questions")
-        conn.commit()
-        conn.close()
-        
-        InfoBar.success(
-            title='成功',
-            content='题库已清空',
-            parent=self,
-            duration=2000
-        )
-    
+
     def start_http_server(self):
         app = Flask(__name__)
         app_instance = self
         
-        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
-        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
-        
         def remove_punctuation(text):
-            return text.translate(str.maketrans('', '', all_punctuation))
+            return normalize_text(text)
         
         @app.route('/')
         def index():
