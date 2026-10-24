@@ -1,4 +1,7 @@
 import unittest
+from io import BytesIO
+from zipfile import ZipFile
+from xml.sax.saxutils import escape
 from docx import Document
 from parser import QuestionParser, QuestionType
 
@@ -184,6 +187,55 @@ class ExporterCompatibilityTests(unittest.TestCase):
         p.add_run("A. 第一项\nB、第二项\nC．第三项")
         self.assertEqual(self.parser._extract_options_from_paragraph(p),
                          ["第一项", "第二项", "第三项"])
+
+    def test_minimal_jszip_word_document_matches_exporter_layout(self):
+        # The upstream userscript writes each piece of text as one <w:p>
+        # and omits normal python-docx style parts.
+        paragraphs = [
+            "1 【单选题】",
+            "正确的选项是什么？",
+            "",
+            "选项：",
+            "A. 错误",
+            "B. 正确",
+            "我的答案：A",
+            "正确答案：B",
+            "",
+        ]
+        namespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+        body = "".join(
+            "<w:p><w:r><w:t>" + escape(text) + "</w:t></w:r></w:p>"
+            if text else "<w:p/>" for text in paragraphs
+        )
+        document_xml = (
+            '<w:document xmlns:w="' + namespace + '"><w:body>' +
+            body + "</w:body></w:document>"
+        )
+        types_xml = (
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Override PartName="/word/document.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+            "</Types>"
+        )
+        relationships_xml = (
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" '
+            'Target="word/document.xml"/>'
+            "</Relationships>"
+        )
+        buffer = BytesIO()
+        with ZipFile(buffer, "w") as archive:
+            archive.writestr("[Content_Types].xml", types_xml)
+            archive.writestr("_rels/.rels", relationships_xml)
+            archive.writestr("word/document.xml", document_xml)
+        buffer.seek(0)
+        questions = self.parser.parse_from_docx(Document(buffer))
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "B")
+        self.assertEqual(questions[0].options, ["错误", "正确"])
 
     def test_legacy_plain_text_parser(self):
         questions = self.parser.parse([
