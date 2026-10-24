@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
+
 mod api;
 mod db;
 mod import;
@@ -105,7 +110,159 @@ fn database_path() -> PathBuf {
     dir.join("tiku.db")
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn appearance_path() -> PathBuf {
+    let base = if cfg!(target_os = "windows") {
+        std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
+    } else if cfg!(target_os = "macos") {
+        std::env::var_os("HOME").map(|home| PathBuf::from(home).join("Library/Application Support"))
+    } else {
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
+    }
+    .unwrap_or_else(|| std::env::temp_dir());
+    base.join("TikuLocal").join("appearance.txt")
+}
+
+fn read_appearance() -> i32 {
+    std::fs::read_to_string(appearance_path())
+        .ok()
+        .and_then(|s| s.trim().parse::<i32>().ok())
+        .filter(|mode| (0..=2).contains(mode))
+        .unwrap_or(0)
+}
+
+fn save_appearance(mode: i32) {
+    let path = appearance_path();
+    if let Some(parent) = path.parent() {
+        if std::fs::create_dir_all(parent).is_err() {
+            return;
+        }
+    }
+    let _ = std::fs::write(path, mode.to_string());
+}
+
+#[cfg(windows)]
+fn system_prefers_dark() -> bool {
+    #[link(name = "advapi32")]
+    unsafe extern "system" {
+        fn RegGetValueW(
+            hkey: isize,
+            subkey: *const u16,
+            value: *const u16,
+            flags: u32,
+            value_type: *mut u32,
+            data: *mut u8,
+            len: *mut u32,
+        ) -> i32;
+    }
+    fn utf16(text: &str) -> Vec<u16> {
+        text.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+    let subkey = utf16("Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
+    let value = utf16("AppsUseLightTheme");
+    let mut result: u32 = 1;
+    let mut len = std::mem::size_of::<u32>() as u32;
+    let ok = unsafe {
+        RegGetValueW(
+            0x80000001_u32 as isize,
+            subkey.as_ptr(),
+            value.as_ptr(),
+            0x18,
+            std::ptr::null_mut(),
+            (&mut result as *mut u32).cast::<u8>(),
+            &mut len,
+        )
+    };
+    ok == 0 && result == 0
+}
+
+#[cfg(target_os = "macos")]
+fn system_prefers_dark() -> bool {
+    std::process::Command::new("defaults")
+        .args(["read", "-g", "AppleInterfaceStyle"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim() == "Dark")
+        .unwrap_or(false)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn system_prefers_dark() -> bool {
+    if let Ok(theme) = std::env::var("GTK_THEME") {
+        if theme.to_lowercase().contains("dark") {
+            return true;
+        }
+    }
+    std::process::Command::new("gsettings")
+        .args(["get", "org.gnome.desktop.interface", "color-scheme"])
+        .output()
+        .map(|output| String::from_utf8_lossy(&output.stdout).contains("prefer-dark"))
+        .unwrap_or(false)
+}
+
+#[cfg(windows)]
+fn apply_windows_titlebar(dark: bool) {
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn EnumWindows(
+            callback: unsafe extern "system" fn(isize, isize) -> i32,
+            data: isize,
+        ) -> i32;
+        fn GetWindowThreadProcessId(hwnd: isize, process_id: *mut u32) -> u32;
+        fn IsWindowVisible(hwnd: isize) -> i32;
+    }
+    unsafe extern "system" fn find_our_window(hwnd: isize, data: isize) -> i32 {
+        let mut process_id: u32 = 0;
+        unsafe {
+            GetWindowThreadProcessId(hwnd, &mut process_id);
+            if process_id == std::process::id() && IsWindowVisible(hwnd) != 0 {
+                *(data as *mut isize) = hwnd;
+                return 0;
+            }
+        }
+        1
+    }
+    #[link(name = "dwmapi")]
+    unsafe extern "system" {
+        fn DwmSetWindowAttribute(hwnd: isize, attribute: u32, value: *const u32, size: u32) -> i32;
+    }
+    // Enumerate our visible top-level window; exact-title lookup is unreliable on some systems.
+    let mut hwnd: isize = 0;
+    unsafe {
+        EnumWindows(find_our_window, (&mut hwnd as *mut isize) as isize);
+    }
+    if hwnd == 0 {
+        return;
+    }
+    let dark_mode = u32::from(dark);
+    let rounded: u32 = 2;
+    // COLORREF uses BGR byte order; matching caption colors prevent dark/light mismatch.
+    let caption: u32 = if dark { 0x002D2420 } else { 0x00FAF6F4 };
+    let caption_text: u32 = if dark { 0x00FCF7F5 } else { 0x00392920 };
+    unsafe {
+        let _ = DwmSetWindowAttribute(hwnd, 20, &dark_mode, 4);
+        let _ = DwmSetWindowAttribute(hwnd, 33, &rounded, 4);
+        let _ = DwmSetWindowAttribute(hwnd, 35, &caption, 4);
+        let _ = DwmSetWindowAttribute(hwnd, 36, &caption_text, 4);
+    }
+}
+
+#[cfg(not(windows))]
+fn apply_windows_titlebar(_dark: bool) {}
+
+fn main() {
+    if let Err(error) = run() {
+        let message = format!("TikuLocal 启动失败：\\n{error}");
+        eprintln!("{message}");
+        let _ = rfd::MessageDialog::new()
+            .set_title("TikuLocal · 启动失败")
+            .set_description(&message)
+            .set_level(rfd::MessageLevel::Error)
+            .show();
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let database = database_path();
     db::open(&database)?;
     let api_state = match api::start(database.clone()) {
@@ -113,6 +270,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Err(error) => format!("API 启动失败：{error}"),
     };
     let app = MainWindow::new()?;
+    let preferred_theme = read_appearance();
+    app.set_system_dark(system_prefers_dark());
+    app.set_theme_mode(preferred_theme);
+    app.invoke_apply_palette(preferred_theme);
+    {
+        let weak = app.as_weak();
+        app.on_theme_changed(move |mode| {
+            save_appearance(mode);
+            if let Some(ui) = weak.upgrade() {
+                let dark = mode == 2 || (mode == 0 && ui.get_system_dark());
+                apply_windows_titlebar(dark);
+            }
+        });
+    }
     app.set_database_path(database.to_string_lossy().to_string().into());
     app.set_service_state(api_state.into());
     let staged = Arc::new(Mutex::new(Vec::<PathBuf>::new()));
@@ -365,6 +536,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
     }
+    app.show()?;
+    // Winit may create its native HWND after the first event-loop iteration.
+    // Retry once so the caption always matches a persisted manual theme.
+    let chrome_weak = app.as_weak();
+    slint::Timer::single_shot(std::time::Duration::from_millis(250), move || {
+        if let Some(ui) = chrome_weak.upgrade() {
+            let dark =
+                ui.get_theme_mode() == 2 || (ui.get_theme_mode() == 0 && ui.get_system_dark());
+            apply_windows_titlebar(dark);
+        }
+    });
+    apply_windows_titlebar(
+        app.get_theme_mode() == 2 || (app.get_theme_mode() == 0 && app.get_system_dark()),
+    );
+
+    // Keep "follow system" responsive to appearance changes.
+    let palette_poll = slint::Timer::default();
+    let weak = app.as_weak();
+    palette_poll.start(
+        slint::TimerMode::Repeated,
+        std::time::Duration::from_secs(4),
+        move || {
+            if let Some(ui) = weak.upgrade() {
+                let dark = system_prefers_dark();
+                if ui.get_system_dark() != dark {
+                    ui.set_system_dark(dark);
+                    if ui.get_theme_mode() == 0 {
+                        apply_windows_titlebar(dark);
+                    }
+                }
+            }
+        },
+    );
     app.run()?;
     Ok(())
 }
