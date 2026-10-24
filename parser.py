@@ -195,7 +195,7 @@ class QuestionParser:
                     # Exporter inserts a blank paragraph after each question.
                     # A blank line within options/question content does not
                     # delimit a record; only a blank after an answer/analysis does.
-                    if current and (
+                    if current and not awaiting_correct_answer and (
                         has_explicit_correct_answer or current.my_answer
                         or current.answer_status or in_analysis
                     ):
