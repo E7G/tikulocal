@@ -1,61 +1,200 @@
 import unittest
 from docx import Document
-
 from parser import QuestionParser, QuestionType
 
 
-class QuestionParserTests(unittest.TestCase):
+class ExporterCompatibilityTests(unittest.TestCase):
     def setUp(self):
         self.parser = QuestionParser()
 
-    def test_common_option_punctuation_is_supported(self):
-        cases = [
-            ("A. 第一项", "第一项"),
-            ("B、第二项", "第二项"),
-            ("C．第三项", "第三项"),
-            ("D) 第四项", "第四项"),
-            ("E）第五项", "第五项"),
-        ]
-        for source, expected in cases:
-            with self.subTest(source=source):
-                match = self.parser._match_option(source)
+    def parse_docx(self, *paragraphs):
+        document = Document()
+        for text in paragraphs:
+            document.add_paragraph(text)
+        return self.parser.parse_from_docx(document)
+
+    def test_word_option_punctuation(self):
+        for value, expected in [
+            ("A. 甲", "甲"),
+            ("B、乙", "乙"),
+            ("C．丙", "丙"),
+            ("D) 丁", "丁"),
+            ("E）戊", "戊"),
+            ("Ｆ: 己", "己"),
+        ]:
+            with self.subTest(value=value):
+                match = self.parser._match_option(value)
                 self.assertIsNotNone(match)
                 self.assertEqual(match.group(2), expected)
 
-    def test_plain_text_parser_reads_options_and_answer(self):
+    def test_chaoxing_quiz_only_correct_answer_not_my_answer(self):
+        questions = self.parse_docx(
+            "1 【单选题】",
+            "毛泽东思想初步形成于（ ）",
+            "",
+            "选项：",
+            "A. 土地革命战争时期\nB. 抗日战争时期\nC. 解放战争时期",
+            "",
+            "我的答案：A",
+            "答案状态：错误",
+            "正确答案：B",
+            "得分：0分",
+            "答案解析：不应成为题干",
+            "",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].content, "毛泽东思想初步形成于（ ）")
+        self.assertEqual(questions[0].options[1], "抗日战争时期")
+        self.assertEqual(questions[0].answer, "B")
+        self.assertEqual(self.parser.stats["imported"], 1)
+
+    def test_explicit_correct_answer_is_required_even_if_status_correct(self):
+        questions = self.parse_docx(
+            "2 【单选题】",
+            "仅有个人作答的题目",
+            "A. 甲",
+            "B. 乙",
+            "我的答案：A",
+            "答案状态：正确",
+            "",
+        )
+        self.assertEqual(questions, [])
+        self.assertEqual(self.parser.stats["skipped_no_correct_answer"], 1)
+
+    def test_ulearning_only_my_answer_cannot_be_trusted(self):
+        questions = self.parse_docx(
+            "请从以下选项中选择",
+            "A. 甲\nB. 乙",
+            "我的答案：B",
+            "",
+        )
+        self.assertEqual(questions, [])
+        self.assertEqual(self.parser.stats["skipped_no_correct_answer"], 1)
+
+    def test_yuketang_labeled_answer_text_is_mapped_to_correct_key(self):
+        questions = self.parse_docx(
+            "1. 单选题",
+            "下列正确的是？",
+            "",
+            "选项：",
+            "A. 红色\nB. 蓝色",
+            "",
+            "我的答案：A. 红色",
+            "正确答案：B. 蓝色",
+            "",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "B")
+
+    def test_multiple_choice_comma_separator_and_case(self):
+        questions = self.parse_docx(
+            "2 【多选题】",
+            "下列哪些正确？",
+            "A、甲\nB、乙\nC、丙",
+            "我的答案：B",
+            "正确答案：A、C",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "AC")
+
+    def test_correct_fill_blanks_discard_my_answers(self):
+        questions = self.parse_docx(
+            "3 【填空题】",
+            "填入两个内容",
+            "我的答案：错；错",
+            "正确答案：第1空：北京；第2空：上海",
+            "",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "北京；上海")
+
+    def test_true_false_normalized(self):
+        questions = self.parse_docx(
+            "【判断题】",
+            "地球是圆的。",
+            "我的答案：错",
+            "正确答案：正确",
+            "",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "对")
+
+    def test_missing_correct_answer_does_not_bleed_into_next_question(self):
+        questions = self.parse_docx(
+            "1 【单选题】",
+            "第一题不应导入",
+            "A. 甲",
+            "B. 乙",
+            "我的答案：A",
+            "",
+            "2 【单选题】",
+            "第二题有明确正确答案",
+            "A. 甲",
+            "B. 乙",
+            "正确答案：B",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].content, "第二题有明确正确答案")
+        self.assertEqual(self.parser.stats["skipped_no_correct_answer"], 1)
+
+    def test_unusable_correct_answer_skipped(self):
+        questions = self.parse_docx(
+            "3 【单选题】",
+            "缺少实际公布答案",
+            "A. 甲",
+            "B. 乙",
+            "正确答案：暂无答案",
+            "",
+            "4 【单选题】",
+            "不能映射的答案",
+            "A. 甲",
+            "B. 乙",
+            "正确答案：其他选项",
+            "",
+        )
+        self.assertEqual(questions, [])
+        self.assertEqual(self.parser.stats["skipped_no_correct_answer"], 1)
+        self.assertEqual(self.parser.stats["skipped_unusable_answer"], 1)
+
+    def test_full_option_text_matches_key(self):
+        questions = self.parse_docx(
+            "【单选题】",
+            "选什么颜色？",
+            "选项：",
+            "A. 红色",
+            "B. 蓝色",
+            "正确答案：蓝色",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].answer, "B")
+
+    def test_essay_explicit_reference_answer(self):
+        questions = self.parse_docx(
+            "5 【简答题】",
+            "简述主要思想。",
+            "参考答案：坚持原则",
+        )
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(questions[0].question_type, QuestionType.ESSAY)
+        self.assertEqual(questions[0].answer, "坚持原则")
+
+    def test_manual_breaks_in_word_options(self):
+        document = Document()
+        p = document.add_paragraph()
+        p.add_run("A. 第一项\nB、第二项\nC．第三项")
+        self.assertEqual(self.parser._extract_options_from_paragraph(p),
+                         ["第一项", "第二项", "第三项"])
+
+    def test_legacy_plain_text_parser(self):
         questions = self.parser.parse([
             "1 【单选题】",
-            "下列哪一项是示例题目？",
+            "下列哪一项？",
             "A. 第一项",
             "B、第二项",
             "正确答案：B",
         ])
         self.assertEqual(len(questions), 1)
-        self.assertEqual(questions[0].question_type, QuestionType.SINGLE_CHOICE)
         self.assertEqual(questions[0].options, ["第一项", "第二项"])
-        self.assertEqual(questions[0].answer, "B")
-
-    def test_docx_parser_reads_line_broken_options_and_answer(self):
-        document = Document()
-        document.add_paragraph("1 【单选题】")
-        document.add_paragraph("下列哪一项是示例题目？")
-        options_paragraph = document.add_paragraph()
-        options_paragraph.add_run("A. 第一项\nB、第二项\nC．第三项")
-        document.add_paragraph("正确答案：B")
-
-        questions = self.parser.parse_from_docx(document)
-
-        self.assertEqual(len(questions), 1)
-        self.assertEqual(questions[0].content, "下列哪一项是示例题目？")
-        self.assertEqual(questions[0].options, ["第一项", "第二项", "第三项"])
-        self.assertEqual(questions[0].answer, "B")
-
-    def test_word_paragraph_with_line_breaks_reads_all_options(self):
-        document = Document()
-        paragraph = document.add_paragraph()
-        paragraph.add_run("A. 第一项\nB、第二项\nC．第三项")
-        options = self.parser._extract_options_from_paragraph(paragraph)
-        self.assertEqual(options, ["第一项", "第二项", "第三项"])
 
 
 if __name__ == "__main__":
