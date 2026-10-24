@@ -276,6 +276,7 @@ class ImportPage(QWidget):
 
     def add_files(self, paths):
         invalid_count = 0
+        existing = {os.path.normcase(p) for p in self.selected_files}
         for path in paths:
             if not path:
                 continue
@@ -284,9 +285,10 @@ class ImportPage(QWidget):
                 invalid_count += 1
                 continue
             normalized_path = os.path.abspath(path)
-            existing = {os.path.normcase(p) for p in self.selected_files}
-            if os.path.normcase(normalized_path) not in existing:
+            key = os.path.normcase(normalized_path)
+            if key not in existing:
                 self.selected_files.append(normalized_path)
+                existing.add(key)
 
         self._render_file_list()
         if invalid_count:
@@ -461,6 +463,7 @@ class ManagePage(QWidget):
         self.list_hint = CaptionLabel("显示最近 100 道题目；可按住 Ctrl / Shift 多选整行后删除。")
         list_card.addWidget(self.list_hint)
 
+        from qfluentwidgets import TableWidget
         self.table = TableWidget(self)
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(['ID', '题目内容', '题型', '选项', '答案', '导入时间'])
@@ -506,10 +509,506 @@ class ManagePage(QWidget):
             self.refresh_list()
     
     def clear_all(self):
+        if self.parent_window:
+            self.parent_window.clear_all()
+            self.refresh_list()
+
+
+class TikuApp(FluentWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("题库适配器")
+        self.resize(1000, 750)
+        
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(base_path, "tiku.db")
+        self.init_database()
+        
+        self.import_page = ImportPage(self)
+        self.search_page = SearchPage(self)
+        self.manage_page = ManagePage(self)
+
+        # Import is the primary task, so make it the first interface shown on launch.
+        self.addSubInterface(self.import_page, FluentIcon.DOWNLOAD, '导入题库')
+        self.addSubInterface(self.search_page, FluentIcon.SEARCH, '搜索题目')
+        self.addSubInterface(self.manage_page, FluentIcon.SETTING, '题库管理')
+        
+        self.start_http_server()
+    
+    def init_database(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL,
+            options TEXT,
+            type INTEGER NOT NULL,
+            answer TEXT NOT NULL,
+            search_question TEXT,
+            search_options TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        columns = {row[1] for row in cursor.execute("PRAGMA table_info(questions)").fetchall()}
+        if "search_question" not in columns:
+            cursor.execute("ALTER TABLE questions ADD COLUMN search_question TEXT")
+        if "search_options" not in columns:
+            cursor.execute("ALTER TABLE questions ADD COLUMN search_options TEXT")
+
+        # Backfill older records and records imported by older JSON-import code.
+        cursor.execute(
+            """SELECT id, question, options FROM questions
+               WHERE search_question IS NULL OR search_question = ''
+                  OR search_options IS NULL"""
+        )
+        for question_id, question, options in cursor.fetchall():
+            cursor.execute(
+                "UPDATE questions SET search_question = ?, search_options = ? WHERE id = ?",
+                (normalize_text(question), normalize_text(options), question_id)
+            )
+
+        conn.commit()
+        conn.close()
+
+    def search_question(self, question_text, type_text, result_widget):
+        if not question_text.strip():
+            InfoBar.warning(
+                title="请输入关键词",
+                content="输入题目中的几个字即可搜索，也可以按 Enter 开始搜索。",
+                parent=self,
+                duration=2200
+            )
+            return
+
+        clean_search = normalize_text(question_text)
+        if not clean_search:
+            InfoBar.warning(
+                title="关键词无效",
+                content="请输入包含文字或数字的题目关键词。",
+                parent=self,
+                duration=2200
+            )
+            return
+
+        type_map = {
+            "全部类型": -1,
+            "单选题": 0,
+            "多选题": 1,
+            "填空题": 2,
+            "判断题": 3,
+            "问答题": 4
+        }
+        type_text_map = {
+            0: "单选题", 1: "多选题", 2: "填空题", 3: "判断题", 4: "问答题"
+        }
+        question_type = type_map.get(type_text, -1)
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            if question_type == -1:
+                cursor.execute(
+                    "SELECT question, options, type, answer, search_question, search_options FROM questions"
+                )
+            else:
+                cursor.execute(
+                    """SELECT question, options, type, answer, search_question, search_options
+                       FROM questions WHERE type = ?""",
+                    (question_type,)
+                )
+            all_questions = cursor.fetchall()
+
+        if not all_questions:
+            result_widget.setPlainText(
+                "题库中还没有可搜索的题目。\n\n"
+                "请先在“导入题库”首页导入 Word 或 JSON 文件，再回来搜索。"
+            )
+            return
+
+        scored_results = []
+        for row in all_questions:
+            original_question, options_json, db_type, answer_text, stored_question, stored_options = row
+            normalized_question = stored_question or normalize_text(original_question)
+            normalized_options = stored_options or normalize_text(options_json)
+            score = 0
+
+            if normalized_question == clean_search:
+                score = 100
+            elif clean_search in normalized_question:
+                score = 80
+            elif normalized_question and normalized_question in clean_search:
+                score = 55
+            elif clean_search in normalized_options:
+                score = 35
+
+            if score:
+                scored_results.append((score, row))
+
+        scored_results.sort(key=lambda item: item[0], reverse=True)
+        if not scored_results:
+            result_widget.setPlainText(
+                "没有找到相关题目。\n\n"
+                "你可以试试：\n"
+                "• 缩短关键词，只保留题目中的几个关键字\n"
+                "• 将题目类型切换为“全部类型”\n"
+                "• 确认题库已经成功导入"
+            )
+            return
+
+        output_lines = [
+            f"找到 {len(scored_results)} 道相关题目，已按匹配程度排序。",
+            ""
+        ]
+        for index, (_, row) in enumerate(scored_results[:100], 1):
+            question, options_json, db_type, answer_text = row[:4]
+            try:
+                options = json.loads(options_json) if options_json else []
+            except (TypeError, json.JSONDecodeError):
+                options = []
+
+            output_lines.append(f"【{index}】{type_text_map.get(db_type, '未知题型')}")
+            output_lines.append(f"题目：{question}")
+            if options:
+                output_lines.append("选项：")
+                for option_index, option in enumerate(options):
+                    label = chr(65 + option_index) if option_index < 26 else str(option_index + 1)
+                    output_lines.append(f"  {label}. {option}")
+            output_lines.append(f"正确答案：{answer_text or '未提供'}")
+            output_lines.append("")
+
+        if len(scored_results) > 100:
+            output_lines.append("仅显示匹配度最高的 100 道题目，请缩短关键词以进一步筛选。")
+        result_widget.setPlainText("\n".join(output_lines))
+
+    def browse_file(self, type_text, path_widget):
+        if 'Word' in type_text:
+            file_path, _ = QFileDialog.getOpenFileName(self, "选择Word文件", "", "Word文档 (*.docx);;所有文件 (*.*)")
+        else:
+            file_path, _ = QFileDialog.getOpenFileName(self, "选择JSON文件", "", "JSON文件 (*.json);;所有文件 (*.*)")
+        
+        if file_path:
+            path_widget.setText(file_path)
+    
+    def import_file(self, type_text, file_path, result_widget):
+        if not file_path.strip():
+            InfoBar.warning(
+                title="请选择文件",
+                content="先选择一个 .docx 或 .json 文件，再开始导入。",
+                parent=self,
+                duration=2200
+            )
+            return
+        result = self.import_files([file_path])[0]
+        if result["error"]:
+            result_widget.setPlainText(f"导入失败：{result['error']}")
+            InfoBar.error(
+                title="导入失败",
+                content=result["error"],
+                parent=self,
+                duration=3000
+            )
+        elif result["count"]:
+            result_widget.setPlainText(f"成功导入 {result['count']} 道题目。")
+            InfoBar.success(
+                title="导入完成",
+                content=f"成功导入 {result['count']} 道题目。",
+                parent=self,
+                duration=2500
+            )
+        else:
+            result_widget.setPlainText(
+                "文件已读取，但没有导入题目。请检查题目内容、正确答案和文件格式。"
+            )
+            InfoBar.warning(
+                title="没有可导入的题目",
+                content="请检查文件中是否包含题目内容和正确答案。",
+                parent=self,
+                duration=2500
+            )
+
+    def import_files(self, file_paths):
+        results = []
+        for file_path in file_paths:
+            try:
+                if not os.path.isfile(file_path):
+                    raise FileNotFoundError("文件不存在或无法访问")
+                suffix = os.path.splitext(file_path)[1].lower()
+                if suffix == ".docx":
+                    count = self.import_from_docx(file_path)
+                elif suffix == ".json":
+                    count = self.import_from_json(file_path)
+                else:
+                    raise ValueError("不支持的文件格式，仅支持 .docx 和 .json")
+                results.append({"path": file_path, "count": count, "error": ""})
+            except Exception as error:
+                results.append({"path": file_path, "count": 0, "error": str(error)})
+
+        if hasattr(self, "manage_page"):
+            self.manage_page.refresh_list()
+        return results
+
+    def import_from_docx(self, file_path):
+        doc = Document(file_path)
+        parser = QuestionParser()
+        questions = parser.parse_from_docx(doc)
+
+        rows = []
+        for question in questions:
+            content = (question.content or "").strip()
+            answer = str(question.answer or "").strip()
+            if not content or not answer:
+                continue
+            options_json = json.dumps(question.options or [], ensure_ascii=False)
+            rows.append((
+                content,
+                options_json,
+                question.question_type.value,
+                answer,
+                normalize_text(content),
+                normalize_text(" ".join(question.options or []))
+            ))
+
+        if not rows:
+            return 0
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                """INSERT INTO questions
+                   (question, options, type, answer, search_question, search_options)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                rows
+            )
+        return len(rows)
+
+    def import_from_json(self, file_path):
+        with open(file_path, "r", encoding="utf-8-sig") as file:
+            data = json.load(file)
+
+        # Accept both the documented array format and {"questions": [...]} exports.
+        if isinstance(data, dict):
+            data = data.get("questions", data.get("data"))
+        if not isinstance(data, list):
+            raise ValueError("JSON 顶层应为题目数组，或包含 questions 数组的对象")
+        if not data:
+            return 0
+
+        type_names = {
+            "单选题": 0, "多选题": 1, "填空题": 2, "判断题": 3, "问答题": 4
+        }
+        rows = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+
+            question = str(item.get("question") or item.get("content") or "").strip()
+            answer_value = item.get("answer", "")
+            if isinstance(answer_value, list):
+                answer = "".join(str(part).strip() for part in answer_value)
+            else:
+                answer = str(answer_value or "").strip()
+
+            options = item.get("options", [])
+            if isinstance(options, str):
+                options = [options] if options.strip() else []
+            elif not isinstance(options, list):
+                options = []
+
+            raw_type = item.get("type", 0)
+            if isinstance(raw_type, str) and raw_type in type_names:
+                question_type = type_names[raw_type]
+            else:
+                try:
+                    question_type = int(raw_type)
+                except (TypeError, ValueError):
+                    continue
+            if question_type not in range(5) or not question or not answer:
+                continue
+
+            options = [str(option).strip() for option in options]
+            options_json = json.dumps(options, ensure_ascii=False)
+            rows.append((
+                question,
+                options_json,
+                question_type,
+                answer,
+                normalize_text(question),
+                normalize_text(" ".join(options))
+            ))
+
+        if not rows:
+            return 0
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.executemany(
+                """INSERT INTO questions
+                   (question, options, type, answer, search_question, search_options)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                rows
+            )
+        return len(rows)
+
+    def build_answer(self, answer_text, options, question_type):
+        answer = {
+            "answerKey": [],
+            "answerKeyText": "",
+            "answerIndex": [],
+            "answerText": answer_text,
+            "bestAnswer": [],
+            "allAnswer": [[]]
+        }
+        
+        if question_type in [0, 1]:
+            answer_keys = re.findall(r'[A-Za-z]', answer_text)
+            answer["answerKey"] = answer_keys
+            answer["answerKeyText"] = ''.join(answer_keys)
+            
+            answer["answerIndex"] = [ord(key.upper()) - ord('A') for key in answer_keys if ord(key.upper()) - ord('A') < len(options)]
+            
+            best_answers = []
+            for key in answer_keys:
+                idx = ord(key.upper()) - ord('A')
+                if idx < len(options):
+                    best_answers.append(options[idx])
+            
+            if best_answers:
+                answer["bestAnswer"] = best_answers
+                answer["answerText"] = '#'.join(best_answers)
+                format1 = best_answers
+                format2 = [f"{key}{options[ord(key.upper()) - ord('A')]}" for key in answer_keys if ord(key.upper()) - ord('A') < len(options)]
+                answer["allAnswer"] = [format1, format2] if format2 else [format1]
+            else:
+                answer["bestAnswer"] = [answer_text]
+                answer["allAnswer"] = [[answer_text]]
+        
+        elif question_type == 2:
+            if '；' in answer_text:
+                fill_answers = [ans.strip() for ans in answer_text.split('；') if ans.strip()]
+                answer["bestAnswer"] = fill_answers
+                answer["allAnswer"] = [fill_answers]
+                answer["answerText"] = answer_text
+            else:
+                answer["bestAnswer"] = [answer_text]
+                answer["allAnswer"] = [[answer_text]]
+        
+        elif question_type == 3:
+            answer["answerKey"] = [answer_text] if answer_text in ['对', '错', '正确', '错误', 'A', 'B'] else []
+            answer["answerKeyText"] = answer["answerKey"][0] if answer["answerKey"] else ''
+            
+            if answer_text in ['对', '正确', 'A']:
+                answer["answerIndex"] = [0] if len(options) > 0 else []
+                answer["bestAnswer"] = [options[0]] if len(options) > 0 else ['对']
+                answer["allAnswer"] = [answer["bestAnswer"]]
+            elif answer_text in ['错', '错误', 'B']:
+                answer["answerIndex"] = [1] if len(options) > 1 else []
+                answer["bestAnswer"] = [options[1]] if len(options) > 1 else ['错']
+                answer["allAnswer"] = [answer["bestAnswer"]]
+        
+        return answer
+    
+    def refresh_question_list(self, table, total_card, single_card, multi_card, judge_card):
+        table.clearContents()
+        table.setRowCount(0)
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM questions")
+        total = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 0")
+        single = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 1")
+        multi = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM questions WHERE type = 3")
+        judge = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT id, question, type, options, answer, created_at FROM questions ORDER BY created_at DESC LIMIT 100")
+        
+        type_map = {0: '单选题', 1: '多选题', 2: '填空题', 3: '判断题', 4: '问答题'}
+        
+        for row in cursor.fetchall():
+            question_text = row[1][:60] + '...' if len(row[1]) > 60 else row[1]
+            
+            try:
+                options = json.loads(row[3]) if row[3] else []
+                options_text = '; '.join([f"{chr(65+i)}.{opt}" for i, opt in enumerate(options[:3])])
+                if len(options) > 3:
+                    options_text += '...'
+            except:
+                options_text = ''
+            
+            answer_text = row[4][:20] + '...' if row[4] and len(row[4]) > 20 else (row[4] if row[4] else '')
+            
+            row_items = [QTableWidgetItem(str(row[0])), 
+                        QTableWidgetItem(question_text),
+                        QTableWidgetItem(type_map.get(row[2], '未知')),
+                        QTableWidgetItem(options_text),
+                        QTableWidgetItem(answer_text),
+                        QTableWidgetItem(row[5])]
+            table.insertRow(table.rowCount())
+            for col, item in enumerate(row_items):
+                table.setItem(table.rowCount() - 1, col, item)
+        
+        conn.close()
+        
+        for card, value in [(total_card, total), (single_card, single), (multi_card, multi), (judge_card, judge)]:
+            layout = card.layout()
+            if layout and layout.count() >= 2:
+                value_item = layout.itemAt(1)
+                if value_item and value_item.widget():
+                    value_item.widget().setText(str(value))
+    
+    def delete_selected(self, table):
+        selected_rows = sorted({item.row() for item in table.selectedItems()})
+        if not selected_rows:
+            InfoBar.warning(
+                title="尚未选择题目",
+                content="先点击题目所在行；按住 Ctrl 或 Shift 可以多选。",
+                parent=self,
+                duration=2200
+            )
+            return
+
+        message_box = MessageBox(
+            "确认删除",
+            f"确定删除选中的 {len(selected_rows)} 道题目吗？此操作无法撤销。",
+            self
+        )
+        if message_box.exec() != MessageBox.Accepted:
+            return
+
+        question_ids = []
+        for row in selected_rows:
+            id_item = table.item(row, 0)
+            if id_item:
+                question_ids.append(id_item.text())
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.executemany(
+                "DELETE FROM questions WHERE id = ?",
+                [(question_id,) for question_id in question_ids]
+            )
+            deleted_count = cursor.rowcount
+
+        InfoBar.success(
+            title="删除完成",
+            content=f"已删除 {deleted_count} 道题目。",
+            parent=self,
+            duration=2200
+        )
+
+    def clear_all(self):
         with sqlite3.connect(self.db_path) as conn:
             count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
         if count == 0:
-            InfoBar.information(
+            InfoBar.warning(
                 title="题库已经为空",
                 content="当前没有需要清空的题目。",
                 parent=self,
@@ -539,8 +1038,11 @@ class ManagePage(QWidget):
         app = Flask(__name__)
         app_instance = self
         
+        chinese_punctuation = '，。！？；：""''【】（）《》〈〉〔〕【】｛｝'
+        all_punctuation = string.punctuation + chinese_punctuation + ' \t\n\r　\xa0'
+        
         def remove_punctuation(text):
-            return normalize_text(text)
+            return text.translate(str.maketrans('', '', all_punctuation))
         
         @app.route('/')
         def index():
