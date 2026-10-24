@@ -21,3 +21,15 @@ __pycache__/
 /target/
 /cargo-test.log
 /tiku.db
+
+# Android / Gradle generated outputs
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/app/src/main/jniLibs/
+/android/*.log
+/android/app/*.log
+# Local diagnostic files
+/android-*.log
+/check-*.log

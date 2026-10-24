@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:label="TikuLocal" android:icon="@mipmap/ic_launcher" android:hasCode="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="false">
+        <activity android:name=".TikuActivity" android:exported="true" android:configChanges="orientation|keyboardHidden|screenSize|uiMode">
+            <meta-data android:name="android.app.lib_name" android:value="tikulocal"/>
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -62,27 +62,21 @@ export component MainWindow inherits Window {
         padding: 10px;
         spacing: 8px;
         HorizontalLayout {
-            height: 35px;
-            spacing: 12px;
-            Text {
-                text: "TikuLocal";
-                color: Palette.foreground;
-                font-size: 24px;
-                font-weight: 700;
-                vertical-alignment: center;
+            height: 58px;
+            spacing: 13px;
+            Rectangle {
+                width: 46px; height: 46px; border-radius: 14px; background: #6750a4;
+                Text { text: "T"; color: white; font-size: 25px; font-weight: 800;
+                    horizontal-alignment: center; vertical-alignment: center; }
             }
-            Text {
-                text: "本地题库  ·  Material Design";
-                color: Palette.foreground;
-                font-size: 12px;
-                vertical-alignment: center;
+            VerticalLayout {
+                spacing: 2px;
+                Text { text: "TikuLocal"; color: Palette.foreground; font-size: 23px; font-weight: 700; }
+                Text { text: "离线题库工作台 · Material Design"; color: Palette.foreground; font-size: 11px; }
             }
             Rectangle { horizontal-stretch: 1; background: transparent; }
-            Text {
-                text: root.total + " 道题目";
-                color: Palette.foreground;
-                vertical-alignment: center;
-            }
+            Text { text: root.total + " 道已收录题目"; font-size: 13px;
+                color: Palette.foreground; vertical-alignment: center; }
         }
 
         TabWidget {

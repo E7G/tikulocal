@@ -1,6 +1,8 @@
-# TikuLocal — Native Rust Edition
+# TikuLocal — Rust Material Edition (Desktop + Android)
 
 本分支从 commit `583fd341d463f6425cea8caefc656b1d7b361046` 开始迁移。纯 Rust 实现（不需要 Python 运行时），桌面 GUI 使用 Slint 官方 Material 样式与标准控件实现（无需 Qt、WebView 或 Python 运行时），SQLite 数据格式尽量兼容旧版。
+
+Android ARM64 原生 APK 已支持，构建、安装和手机端交互说明见 [ANDROID.md](ANDROID.md)。Windows、Linux、macOS 使用桌面 GUI；Android 自动编译触控专用 Material 页面，底层题库、导入和 API 共用 Rust 实现。
 
 ## 操作
 
