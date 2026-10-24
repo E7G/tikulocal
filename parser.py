@@ -125,22 +125,20 @@ class QuestionParser:
         self.questions = []
         current_question = None
         current_options = []
-        
+
         for para in doc.paragraphs:
             text = para.text.strip()
-            
             if not text:
                 continue
-            
+
             question_match = self._match_question_header(text)
             if question_match:
                 if current_question:
                     self._finalize_question(current_question, current_options)
-                
+
                 question_number = question_match.group(1)
                 question_type_text = question_match.group(2)
                 question_type = self._parse_question_type(question_type_text)
-                
                 current_question = Question(
                     number=int(question_number),
                     content="",
@@ -149,44 +147,75 @@ class QuestionParser:
                 )
                 current_options = []
                 continue
-            
-            if current_question:
-                if text == "选项：":
-                    continue
-                
-                if self._is_option_line(text):
-                    options = self._extract_options_from_paragraph(para)
-                    current_options.extend(options)
-                    continue
-                
-                answer_match = self._match_my_answer(text)
-                if answer_match:
-                    current_question.my_answer = answer_match.group(1).strip()
-                    continue
-                
-                status_match = self._match_answer_status(text)
-                if status_match:
-                    current_question.answer_status = status_match.group(1).strip()
-                    continue
-                
-                correct_match = self._match_correct_answer(text)
-                if correct_match:
-                    current_question.answer = correct_match.group(1).strip()
-                    continue
-                
-                score_match = self._match_score(text)
-                if score_match:
-                    current_question.score = score_match.group(1).strip()
-                    continue
-                
-                if not current_question.content:
-                    current_question.content = text
-        
+
+            if not current_question:
+                continue
+
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            option_lines = [line for line in lines if self._is_option_line(line)]
+            if option_lines:
+                # Preserve question/answer text if the export puts it in the same
+                # paragraph as options separated by manual line breaks.
+                for line in lines:
+                    if self._is_option_line(line) or line == "选项：":
+                        continue
+                    answer_match = self._match_my_answer(line)
+                    if answer_match:
+                        current_question.my_answer = answer_match.group(1).strip()
+                        continue
+                    status_match = self._match_answer_status(line)
+                    if status_match:
+                        current_question.answer_status = status_match.group(1).strip()
+                        continue
+                    correct_match = self._match_correct_answer(line)
+                    if correct_match:
+                        current_question.answer = correct_match.group(1).strip()
+                        continue
+                    score_match = self._match_score(line)
+                    if score_match:
+                        current_question.score = score_match.group(1).strip()
+                        continue
+                    if not current_question.content:
+                        current_question.content = line
+                    else:
+                        current_question.content += "\n" + line
+
+                current_options.extend(self._extract_options_from_paragraph(para))
+                continue
+
+            if text == "选项：":
+                continue
+
+            answer_match = self._match_my_answer(text)
+            if answer_match:
+                current_question.my_answer = answer_match.group(1).strip()
+                continue
+
+            status_match = self._match_answer_status(text)
+            if status_match:
+                current_question.answer_status = status_match.group(1).strip()
+                continue
+
+            correct_match = self._match_correct_answer(text)
+            if correct_match:
+                current_question.answer = correct_match.group(1).strip()
+                continue
+
+            score_match = self._match_score(text)
+            if score_match:
+                current_question.score = score_match.group(1).strip()
+                continue
+
+            if not current_question.content:
+                current_question.content = text
+            else:
+                current_question.content += "\n" + text
+
         if current_question:
             self._finalize_question(current_question, current_options)
-        
+
         return self.questions
-    
+
     def _extract_options_from_paragraph(self, para) -> List[str]:
         # Word often stores multiple options in one paragraph separated by line breaks.
         options = []
@@ -201,8 +230,8 @@ class QuestionParser:
     
     def _match_option(self, text: str) -> Optional[re.Match]:
         # Accept common Word/export styles: A. text, A、text, A．text, A) text.
-        return re.match(r'^\s*([A-ZＡ-Ｚ])\s*[.．、)）:：]\s*(.+?)\s*
-    
+        return re.match(r'^\s*([A-ZＡ-Ｚ])\s*[.．、)）:：]\s*(.+?)\s*$', text)
+
     def _match_my_answer(self, text: str) -> Optional[re.Match]:
         match = re.match(r'^我的答案[:：]\s*(.+)$', text)
         if match:
