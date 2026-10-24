@@ -102,7 +102,7 @@ python main.py
 ### 4. 题库管理
 
 - 统计卡片显示题目总数及单选、多选和判断题数量。
-- 列表默认显示最近 100 道题目。
+- 列表默认显示最近 100 道题目，可按题目、题型、选项或答案关键词即时筛选。
 - 点击一行选择题目；按住 Ctrl 或 Shift 可多选，然后点击“删除选中”。
 - 删除和清空前会显示确认提示，避免误操作。
 
@@ -115,8 +115,8 @@ HTTP 服务器默认监听 localhost:8060。
 搜索题目：
 
 ~~~bash
-curl -X POST http://localhost:8060/adapter-service/search \\
-  -H "Content-Type: application/json" \\
+curl -X POST http://localhost:8060/adapter-service/search \
+  -H "Content-Type: application/json" \
   -d '{"question":"毛泽东思想","options":[],"type":0}'
 ~~~
 
