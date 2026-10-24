@@ -1,187 +1,186 @@
 # 题库适配器 - 本地版
 
-基于 PyQt5 和 qfluentwidgets 构建的现代化本地题库管理系统。
+基于 PyQt5、qfluentwidgets 和 SQLite 构建的本地题库管理工具，适合整理、检索和向兼容平台提供题库答案。
 
 ## 功能特性
 
-- **现代化 UI**：采用 Fluent Design 设计，支持浅色/深色主题跟随系统设置
-- **搜索题目**：支持模糊搜索，自动去除标点和空格进行匹配
-- **导入题库**：支持拖拽导入单个或批量 Word/JSON 文件
-- **题库管理**：查看、删除和清空本地题库
-- **HTTP API**：提供 RESTful API 接口，兼容 tikuAdapter 格式
-- **自动发布**：支持 GitHub Actions 一键打包发布
+- **导入首页**：启动后直接进入题库导入页面，不必先切换导航。
+- **批量导入**：支持一次选择多个 Word / JSON 文件，也支持拖拽文件到清单。
+- **导入前检查**：拖入文件只会加入待导入清单，不会未经确认就立即写入题库。
+- **清晰的导入反馈**：逐个显示文件导入数量、失败原因；失败或未识别的文件会保留在清单中，便于检查和重试。
+- **灵活搜索**：支持按题目类型筛选、忽略常见标点和空格，并优先显示匹配程度更高的结果。
+- **题库管理**：查看最近导入的题目、多选删除、清空题库前确认，并查看题目数量统计。
+- **本地存储**：题库数据保存在 SQLite 数据库中。
+- **兼容 API**：提供 RESTful API，兼容 tikuAdapter 格式。
+- **自动发布**：支持 GitHub Actions 打包发布。
 
 ## 技术栈
 
 - Python 3.10+
-- PyQt5 + qfluentwidgets（Fluent Design UI）
-- SQLite（本地数据库）
-- python-docx（Word 文档解析）
-- PyInstaller（打包发布）
+- PyQt5 + qfluentwidgets
+- SQLite
+- python-docx
+- Flask
+- PyInstaller
 
 ## 快速开始
 
 ### 使用 pixi（推荐）
 
-```bash
+~~~bash
 pixi run start
-```
+~~~
 
 ### 使用 pip
 
-```bash
+~~~bash
 pip install -r requirements.txt
 python main.py
-```
+~~~
 
-## 功能介绍
+## 使用说明
 
-### 1. 导入题库
+### 1. 导入题库（首页）
 
-支持两种导入方式：
+支持 .docx 和 .json 文件。
 
-**Word 文档导入**：
-- 支持拖拽文件到导入区域
-- 支持批量拖入多个文件
-- 自动识别文件类型（.docx 或 .json）
+1. 点击“选择文件（可多选）”，或把文件直接拖到文件清单中。
+2. 检查待导入清单；不需要的文件可以移除，也可以清空整个清单。
+3. 点击“导入全部文件”。
+4. 在“导入结果”中查看每个文件导入的题目数量和失败原因。失败或没有识别到题目的文件会保留在清单中，方便检查后重试。
 
-**JSON 文件导入**：
-```json
+重复添加同一路径的文件不会在待导入清单中重复显示。导入操作会根据扩展名自动识别文件格式。
+
+### 2. JSON 格式
+
+可以直接使用题目数组：
+
+~~~json
 [
   {
     "question": "题目内容",
-    "options": ["A. 选项 A", "B. 选项 B"],
+    "options": ["选项 A", "选项 B"],
     "type": 0,
     "answer": "A"
   }
 ]
-```
+~~~
 
-### 2. 搜索题目
+也可以使用包含 questions 数组的对象：
 
-- 支持模糊搜索
-- 自动去除标点符号和空格进行匹配
-- 支持按题目类型筛选
-- 返回标准 JSON 格式结果
+~~~json
+{
+  "questions": [
+    {
+      "question": "题目内容",
+      "options": ["选项 A", "选项 B"],
+      "type": 0,
+      "answer": "A"
+    }
+  ]
+}
+~~~
 
-### 3. 题库管理
+字段说明：
 
-- 统计面板显示各类题目数量
-- 支持选中删除和清空题库
-- 列表显示题目详情（内容、类型、选项、答案）
+| 字段 | 说明 |
+| --- | --- |
+| question | 题目内容，也可使用 content |
+| options | 选项数组；没有选项时可为空数组 |
+| type | 题型编号：0 单选、1 多选、2 填空、3 判断、4 问答 |
+| answer | 正确答案，必填 |
+
+缺少题目内容或正确答案的记录会被跳过。导入时会同时生成搜索字段，确保 JSON 导入的题目也能被桌面端搜索。
+
+### 3. 搜索题目
+
+- 输入题目中的几个关键词即可搜索，也可以按 Enter 开始。
+- 可按单选、多选、填空、判断或问答题筛选。
+- 搜索会忽略常见标点和空白，并优先显示匹配度较高的题目。
+- 没有结果时，页面会给出缩短关键词、检查题型和确认导入状态等建议。
+
+### 4. 题库管理
+
+- 统计卡片显示题目总数及单选、多选和判断题数量。
+- 列表默认显示最近 100 道题目。
+- 点击一行选择题目；按住 Ctrl 或 Shift 可多选，然后点击“删除选中”。
+- 删除和清空前会显示确认提示，避免误操作。
 
 ## API 接口
 
-HTTP 服务器监听端口 8060，提供以下接口：
+HTTP 服务器默认监听 localhost:8060。
 
 ### POST /adapter-service/search
 
 搜索题目：
 
-```bash
-curl -X POST http://localhost:8060/adapter-service/search \
-  -H "Content-Type: application/json" \
-  -d '{"question": "毛泽东思想", "options": [], "type": 0}'
-```
+~~~bash
+curl -X POST http://localhost:8060/adapter-service/search \\
+  -H "Content-Type: application/json" \\
+  -d '{"question":"毛泽东思想","options":[],"type":0}'
+~~~
 
-响应格式：
-```json
+响应示例：
+
+~~~json
 {
   "plat": 0,
   "question": "题目内容",
-  "options": ["A. 选项 A", "B. 选项 B"],
+  "options": ["选项 A", "选项 B"],
   "type": 0,
   "answer": {
     "answerKey": ["A"],
     "answerKeyText": "A",
     "answerIndex": [0],
-    "answerText": "A. 选项 A",
-    "bestAnswer": ["A. 选项 A"],
-    "allAnswer": [["A. 选项 A"]]
+    "answerText": "选项 A",
+    "bestAnswer": ["选项 A"],
+    "allAnswer": [["选项 A"]]
   }
 }
-```
+~~~
 
-### GET /
+其他接口：
 
-健康检查接口。
+- GET /：健康检查页面。
+- GET /adapter-service：适配器状态。
+- HEAD /adapter-service/search：心跳检测。
 
-### HEAD /adapter-service/search
+## 开发与测试
 
-心跳检测接口。
+运行题目解析器回归测试：
 
-## Word 文档格式
-
-```
-1  【单选题】
-毛泽东思想初步形成于（     ）
-A. 土地革命战争时期
-B. 抗日战争时期
-C. 解放战争时期
-D. 中华人民共和国成立后
-正确答案：B
-我的答案：B
-答案状态：正确
-得分：5
-
-2  【多选题】
-下列属于毛泽东思想组成部分的是（     ）
-A. 新民主主义革命理论
-B. 社会主义改造理论
-C. 改革开放理论
-D. 社会主义初级阶段理论
-正确答案：AB
-我的答案：AB
-答案状态：正确
-得分：10
-```
-
-## 数据库结构
-
-SQLite 数据库 `tiku.db`，包含以下字段：
-
-| 字段 | 说明 |
-|------|------|
-| id | 主键 |
-| question | 原始题目 |
-| options | 选项（JSON 格式） |
-| type | 题目类型（0-4） |
-| answer | 答案 |
-| search_question | 搜索用题目（去标点） |
-| search_options | 搜索用选项（去标点） |
-| created_at | 创建时间 |
-
-## 打包发布
+~~~bash
+python -m unittest discover -s tests -v
+~~~
 
 使用 PyInstaller 打包：
 
-```bash
+~~~bash
 pip install pyinstaller
 pyinstaller tikulocal.spec
-```
+~~~
 
-或使用 GitHub Actions 自动发布（推送 v* 标签触发）：
+推送 v* 标签可触发自动发布：
 
-```bash
+~~~bash
 git tag v1.0.0
 git push origin v1.0.0
-```
+~~~
 
 ## 项目结构
 
-```
+~~~text
 tikulocal/
-├── main.py              # 主程序入口
-├── parser.py            # Word 文档解析器
-├── requirements.txt      # Python 依赖
-├── pixi.toml            # pixi 配置
-├── tikulocal.spec       # PyInstaller 配置
-├── icon.png             # 应用图标
-├── README.md            # 说明文档
-└── .github/
-    └── workflows/
-        └── release.yml  # GitHub Actions 发布流程
-```
+├── main.py
+├── parser.py
+├── tests/
+│   └── test_parser.py
+├── requirements.txt
+├── pixi.toml
+├── tikulocal.spec
+├── icon.png
+└── README.md
+~~~
 
 ## License
 
