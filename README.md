@@ -2,7 +2,7 @@
 
 本分支从 commit `583fd341d463f6425cea8caefc656b1d7b361046` 开始迁移。纯 Rust 实现（不需要 Python 运行时），桌面 GUI 使用 Slint 官方 Material 样式与标准控件实现（无需 Qt、WebView 或 Python 运行时），SQLite 数据格式尽量兼容旧版。
 
-Android ARM64 原生 APK 已支持，构建、安装和手机端交互说明见 [ANDROID.md](ANDROID.md)。Windows、Linux、macOS 使用 Material 工作台布局（左侧固定导航、右侧工作区、统计卡片、文件和搜索列表），Android 采用适合触控的单列页面与底部导航。业务表单、按钮、选择器、列表与表格继续使用 Slint 官方 Material 控件。桌面左侧参考 Material 3 Expressive 的 Expanded Navigation Rail：宽 252px，56px 导航目标、24px SVG 图标、选中胶囊和分组。输入框/选择框统一 48px，操作按钮统一 40px，统计卡片统一 88px，搜索、管理和设置页会撑满剩余工作区；设置页采用双列卡片与可伸展备份区。注意：Slint 1.13 内置的是 Material 风格控件，并非完整的 Google Material 3 Expressive 原生组件库；导航结构为定制实现。底层题库、导入和 API 共用 Rust 实现。
+Android ARM64 原生 APK 已支持，构建、安装和手机端交互说明见 [ANDROID.md](ANDROID.md)。Windows、Linux、macOS 使用 Material 工作台布局（左侧固定导航、右侧工作区、统计卡片、文件和搜索列表），Android 采用适合触控的单列页面与底部导航。业务表单、按钮、选择器、列表与表格继续使用 Slint 官方 Material 控件。桌面左侧参考 Material 3 Expressive 的 Expanded Navigation Rail：宽 252px，56px 导航目标、24px SVG 图标、选中胶囊和分组。桌面窗口使用 Slint `preferred-width` / `preferred-height` 允许真正缩放；主内容区与窗口等宽，搜索和题库管理表格按当前窗口宽度动态调整列宽，不再在右侧留下固定列宽造成的大片空白。输入框/选择框统一 48px，操作按钮统一 40px，统计卡片统一 88px，搜索、管理和设置页会撑满剩余工作区；设置页采用双列卡片与可伸展备份区。注意：Slint 1.13 内置的是 Material 风格控件，并非完整的 Google Material 3 Expressive 原生组件库；导航结构为定制实现。底层题库、导入和 API 共用 Rust 实现。
 
 ## 操作
 

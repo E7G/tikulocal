@@ -61,9 +61,18 @@ component SummaryTile inherits Rectangle {
 
 export component MainWindow inherits Window {
     title: "TikuLocal · Material 工作台";
-    width: 1030px;
-    height: 635px;
+    preferred-width: 1120px;
+    preferred-height: 635px;
+    min-width: 850px;
+    min-height: 540px;
+    max-width: 4096px;
+    max-height: 2160px;
     background: root.canvas;
+
+    // Imperatively snapshot window width for table columns. Binding columns
+    // directly to Window.width forms a table-layout/preferred-size cycle.
+    private property <length> table-layout-width: 1120px;
+    changed width => { root.table-layout-width = self.width; }
 
     in-out property <int> page: 0;
     in-out property <string> query: "";
@@ -303,11 +312,13 @@ export component MainWindow inherits Window {
                             padding: 12px; spacing: 8px;
                             Text { text: "匹配结果  ·  " + root.match-count + " 道"; color: root.primary-text; font-size: 14px; font-weight: 700; }
                             StandardTableView {
+                                // Share all usable horizontal space instead of leaving a
+                                // fixed-width table surrounded by a blank right margin.
                                 columns: [
-                                    { title: "题型", width: 83px },
-                                    { title: "题目内容", width: 235px },
-                                    { title: "选项", width: 185px },
-                                    { title: "正确答案", width: 155px },
+                                    { title: "题型", width: 88px },
+                                    { title: "题目内容", width: max(250px, (root.table-layout-width - 430px) * 0.47) },
+                                    { title: "选项", width: max(170px, (root.table-layout-width - 430px) * 0.30) },
+                                    { title: "正确答案", width: max(140px, (root.table-layout-width - 430px) * 0.23) },
                                 ];
                                 rows: root.search-table-rows;
                                 vertical-stretch: 1;
@@ -371,11 +382,11 @@ export component MainWindow inherits Window {
                             Text { text: "最近题目  ·  选择行后可标记删除"; color: root.primary-text; font-size: 14px; font-weight: 700; }
                             StandardTableView {
                                 columns: [
-                                    { title: "标记", width: 78px },
-                                    { title: "编号", width: 55px },
+                                    { title: "标记", width: 72px },
+                                    { title: "编号", width: 76px },
                                     { title: "题型", width: 86px },
-                                    { title: "题目", width: 230px },
-                                    { title: "正确答案", width: 160px },
+                                    { title: "题目", width: max(270px, (root.table-layout-width - 576px) * 0.72) },
+                                    { title: "正确答案", width: max(150px, (root.table-layout-width - 576px) * 0.28) },
                                 ];
                                 rows: root.manage-table-rows;
                                 current-row <=> root.selected-manage-row;
