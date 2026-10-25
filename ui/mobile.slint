@@ -1,6 +1,38 @@
 import { Button, LineEdit, ComboBox, CheckBox, StandardListView, GroupBox,
          TextEdit, ProgressIndicator, TabWidget, Palette, ListView } from "std-widgets.slint";
 
+component MobileNavItem inherits Rectangle {
+    in property <image> glyph;
+    in property <string> caption;
+    in property <bool> current;
+    in property <bool> dark;
+    callback activated();
+    height: 64px;
+    horizontal-stretch: 1;
+    background: transparent;
+    Rectangle {
+        x: (root.width - 56px) / 2; y: 3px;
+        width: 56px; height: 32px; border-radius: 16px;
+        background: root.current ? (root.dark ? #59477b : #e8def8) : transparent;
+        Image {
+            source: root.glyph;
+            width: 22px; height: 22px;
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            image-fit: contain;
+            colorize: root.current ? (root.dark ? #f2eaff : #4f378b)
+                : (root.dark ? #cec3d5 : #655d69);
+        }
+    }
+    Text {
+        text: root.caption; x: 0px; y: 39px; width: root.width; height: 20px;
+        font-size: 11px; font-weight: root.current ? 700 : 500;
+        color: root.dark ? #f2eaff : #49404f;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+    TouchArea { clicked => { root.activated(); } }
+}
+
 export struct FileRow { name: string, path: string }
 export struct QuestionRow { id: int, title: string, options: string, kind: string, answer: string, date: string, selected: bool }
 
@@ -175,14 +207,14 @@ export component MainWindow inherits Window {
         }
         Text { text: root.status; height: 22px; font-size: 11px; color: Palette.foreground; overflow: elide; }
         Rectangle {
-            height: 65px; background: root.card; border-radius: 18px;
+            height: 72px; background: root.card; border-radius: 20px;
             border-width: 1px; border-color: root.outline;
             HorizontalLayout {
-                padding: 7px; spacing: 5px;
-                Button { text: "↓ 导入"; primary: root.page == 0; clicked => { root.page = 0; } }
-                Button { text: "⌕ 搜索"; primary: root.page == 1; clicked => { root.page = 1; } }
-                Button { text: "▤ 题库"; primary: root.page == 2; clicked => { root.page = 2; root.refresh(); } }
-                Button { text: "⚙ 设置"; primary: root.page == 3; clicked => { root.page = 3; } }
+                padding: 4px; spacing: 2px;
+                MobileNavItem { glyph: @image-url("icons/import.svg"); caption: "导入"; current: root.page == 0; dark: root.is-dark; activated => { root.page = 0; } }
+                MobileNavItem { glyph: @image-url("icons/search.svg"); caption: "搜索"; current: root.page == 1; dark: root.is-dark; activated => { root.page = 1; } }
+                MobileNavItem { glyph: @image-url("icons/library.svg"); caption: "题库"; current: root.page == 2; dark: root.is-dark; activated => { root.page = 2; root.refresh(); } }
+                MobileNavItem { glyph: @image-url("icons/settings.svg"); caption: "设置"; current: root.page == 3; dark: root.is-dark; activated => { root.page = 3; } }
             }
         }
     }
