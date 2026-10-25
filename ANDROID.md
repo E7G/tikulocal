@@ -35,7 +35,7 @@ The GitHub Action `Rust release` builds a preview APK (`tikulocal-android-arm64.
 
 ## Design / privacy
 
-The Android UI is separate from the desktop layout to avoid multi-column tables on narrow screens. The Rust model, imports, search, database and API remain shared. Documents are imported by the user through Android's system picker. No media storage, accessibility, or all-files permission is needed.
+The Android UI uses a Material bottom navigation bar (Import, Search, Library, Settings) with a single-column content area, while desktop uses a fixed left navigation rail and Fluent-inspired workspace layout. Both use Material controls and share the same Rust models; narrow screens never display desktop multi-column tables. The Rust model, imports, search, database and API remain shared. Documents are imported by the user through Android's system picker. No media storage, accessibility, or all-files permission is needed.
 
 Android APK compilation and package structure can be verified without a connected device, but **installation, touch interaction, document picker callbacks, and real-device performance still require a connected device or running Android emulator**.
 

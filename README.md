@@ -2,7 +2,7 @@
 
 本分支从 commit `583fd341d463f6425cea8caefc656b1d7b361046` 开始迁移。纯 Rust 实现（不需要 Python 运行时），桌面 GUI 使用 Slint 官方 Material 样式与标准控件实现（无需 Qt、WebView 或 Python 运行时），SQLite 数据格式尽量兼容旧版。
 
-Android ARM64 原生 APK 已支持，构建、安装和手机端交互说明见 [ANDROID.md](ANDROID.md)。Windows、Linux、macOS 使用桌面 GUI；Android 自动编译触控专用 Material 页面，底层题库、导入和 API 共用 Rust 实现。
+Android ARM64 原生 APK 已支持，构建、安装和手机端交互说明见 [ANDROID.md](ANDROID.md)。Windows、Linux、macOS 使用 Material 工作台布局（左侧固定导航、右侧工作区、统计卡片、文件和搜索列表），Android 采用适合触控的单列页面与底部导航。业务表单、按钮、选择器、列表与表格继续使用 Slint 官方 Material 控件；桌面左侧采用独立的 Material Navigation Drawer 导航结构（Slint 1.13 尚无内置 NavigationDrawer 控件），包含分组、选中指示与 SVG 图标。底层题库、导入和 API 共用 Rust 实现。
 
 ## 操作
 

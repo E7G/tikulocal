@@ -66,16 +66,15 @@ export component MainWindow inherits Window {
             VerticalLayout {
                 spacing: 3px;
                 Text { text: "TikuLocal"; font-size: 23px; font-weight: 700; color: Palette.foreground; }
-                Text { text: "离线题库 · Material"; font-size: 11px; color: Palette.foreground; }
+                Text { text: "离线题库工作台 · Material"; font-size: 11px; color: Palette.foreground; }
             }
             Rectangle { horizontal-stretch: 1; background: transparent; }
             Text { text: root.total + " 道"; font-size: 14px; color: Palette.foreground; vertical-alignment: center; }
         }
-        TabWidget {
-            current-index <=> root.page;
-            Tab {
-                title: "导入";
-                VerticalLayout { spacing: 12px; padding-top: 8px;
+        VerticalLayout {
+            vertical-stretch: 1;
+            spacing: 0px;
+            if root.page == 0: VerticalLayout { spacing: 12px; padding-top: 8px;
                     Text { text: "导入答案"; font-size: 21px; font-weight: 700; color: Palette.foreground; }
                     Text { text: "从 Android 文件选择器挑选 .docx 或 .json，可一次导入多个。"; color: Palette.foreground; wrap: word-wrap; }
                     HorizontalLayout { spacing: 8px; height: 52px;
@@ -95,10 +94,7 @@ export component MainWindow inherits Window {
                     Text { text: "导入报告"; color: Palette.foreground; font-weight: 650; }
                     TextEdit { text: root.import-report; read-only: true; height: 95px; }
                 }
-            }
-            Tab {
-                title: "搜索";
-                VerticalLayout { spacing: 10px; padding-top: 8px;
+            if root.page == 1: VerticalLayout { spacing: 10px; padding-top: 8px;
                     Text { text: "查找答案"; font-size: 21px; font-weight: 700; color: Palette.foreground; }
                     LineEdit { text <=> root.query; placeholder-text: "输入关键词"; accepted => { root.search(root.query,root.filter-index); } }
                     HorizontalLayout { spacing: 8px; height: 48px;
@@ -119,10 +115,7 @@ export component MainWindow inherits Window {
                         }
                     }
                 }
-            }
-            Tab {
-                title: "题库";
-                VerticalLayout { spacing: 9px; padding-top: 8px;
+            if root.page == 2: VerticalLayout { spacing: 9px; padding-top: 8px;
                     Text { text: "题库管理"; font-size: 21px; font-weight: 700; color: Palette.foreground; }
                     Text { text: root.total + " 道题 · 单选 " + root.single-count + " · 多选 " + root.multiple-count; color: Palette.foreground; font-size: 12px; }
                     HorizontalLayout { height: 45px; spacing: 6px;
@@ -150,10 +143,7 @@ export component MainWindow inherits Window {
                         }
                     }
                 }
-            }
-            Tab {
-                title: "设置";
-                VerticalLayout { spacing: 15px; padding-top: 8px;
+            if root.page == 3: VerticalLayout { spacing: 15px; padding-top: 8px;
                     Text { text: "设置"; font-size: 21px; font-weight: 700; color: Palette.foreground; }
                     GroupBox { title: "外观";
                         VerticalLayout { spacing: 10px;
@@ -182,8 +172,18 @@ export component MainWindow inherits Window {
                         Button { text: "取消"; clicked => { root.confirm-clear=false; } }
                     }
                 }
+        }
+        Text { text: root.status; height: 22px; font-size: 11px; color: Palette.foreground; overflow: elide; }
+        Rectangle {
+            height: 65px; background: root.card; border-radius: 18px;
+            border-width: 1px; border-color: root.outline;
+            HorizontalLayout {
+                padding: 7px; spacing: 5px;
+                Button { text: "↓ 导入"; primary: root.page == 0; clicked => { root.page = 0; } }
+                Button { text: "⌕ 搜索"; primary: root.page == 1; clicked => { root.page = 1; } }
+                Button { text: "▤ 题库"; primary: root.page == 2; clicked => { root.page = 2; root.refresh(); } }
+                Button { text: "⚙ 设置"; primary: root.page == 3; clicked => { root.page = 3; } }
             }
         }
-        Text { text: root.status; height: 28px; font-size: 11px; color: Palette.foreground; overflow: elide; }
     }
 }
