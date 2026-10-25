@@ -2,7 +2,11 @@ use crate::db::Question;
 use anyhow::{bail, Context, Result};
 use quick_xml::{events::Event, Reader};
 use regex::Regex;
-use std::{fs::File, io::Read, path::Path};
+use std::{
+    fs::File,
+    io::{Cursor, Read, Seek},
+    path::Path,
+};
 use zip::ZipArchive;
 
 pub fn from_path(path: &Path) -> Result<Vec<Question>> {
@@ -15,6 +19,7 @@ pub fn from_path(path: &Path) -> Result<Vec<Question>> {
     {
         "json" => from_json(path),
         "docx" => from_docx(path),
+        "zip" => from_batch_zip(path),
         ext => bail!("Unsupported input format: {ext}"),
     }
 }
@@ -68,12 +73,19 @@ pub fn from_json(path: &Path) -> Result<Vec<Question>> {
     }
     Ok(result)
 }
-fn docx_paragraphs(path: &Path) -> Result<Vec<String>> {
-    let mut archive = ZipArchive::new(File::open(path)?)?;
+fn docx_paragraphs<R: Read + Seek>(source: R) -> Result<Vec<String>> {
+    let mut archive = ZipArchive::new(source)?;
     let mut xml = String::new();
-    archive
-        .by_name("word/document.xml")?
+    let document = archive.by_name("word/document.xml")?;
+    if document.size() > MAX_DOCUMENT_XML_BYTES {
+        bail!("DOCX document.xml exceeds the 16 MiB safety limit");
+    }
+    document
+        .take(MAX_DOCUMENT_XML_BYTES + 1)
         .read_to_string(&mut xml)?;
+    if xml.len() as u64 > MAX_DOCUMENT_XML_BYTES {
+        bail!("DOCX XML exceeds the 16 MiB safety limit");
+    }
     let mut reader = Reader::from_str(&xml);
     reader.config_mut().trim_text(false);
     let mut lines = Vec::new();
@@ -118,7 +130,76 @@ fn docx_paragraphs(path: &Path) -> Result<Vec<String>> {
     Ok(lines)
 }
 pub fn from_docx(path: &Path) -> Result<Vec<Question>> {
-    parse_paragraphs(&docx_paragraphs(path)?)
+    parse_paragraphs(&docx_paragraphs(File::open(path)?)?)
+}
+
+const MAX_DOCUMENT_XML_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_BATCH_ENTRIES: usize = 2048;
+const MAX_BATCH_FILE_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_DOCX_BYTES: u64 = 32 * 1024 * 1024;
+const MAX_TOTAL_UNCOMPRESSED_DOCX: u64 = 256 * 1024 * 1024;
+
+/// Import the upstream v0.2.1 batch export: a ZIP of numbered DOCX files
+/// plus 导出清单.txt. Invalid/failed members do not discard valid documents.
+pub fn from_batch_zip(path: &Path) -> Result<Vec<Question>> {
+    let file = File::open(path)?;
+    if file.metadata()?.len() > MAX_BATCH_FILE_BYTES {
+        bail!("批量 ZIP 超过 128 MiB 限制");
+    }
+    let mut archive = ZipArchive::new(file).context("批量文件不是有效 ZIP")?;
+    if archive.len() > MAX_BATCH_ENTRIES {
+        bail!("ZIP 内文件数量超过 2048 个");
+    }
+    let mut output = Vec::new();
+    let mut docx_count = 0usize;
+    let mut failed_count = 0usize;
+    let mut total_size = 0u64;
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index)?;
+        if entry.is_dir() || !entry.name().to_ascii_lowercase().ends_with(".docx") {
+            continue; // skip 导出清单.txt, folders and unrelated attachments
+        }
+        docx_count += 1;
+        if entry.size() > MAX_DOCX_BYTES {
+            failed_count += 1;
+            eprintln!("Skipping oversize DOCX in ZIP: {}", entry.name());
+            continue;
+        }
+        total_size = total_size.saturating_add(entry.size());
+        if total_size > MAX_TOTAL_UNCOMPRESSED_DOCX {
+            bail!("ZIP 内 DOCX 解压总量超过 256 MiB 限制");
+        }
+        let name = entry.name().to_string();
+        let parsed = (|| -> Result<Vec<Question>> {
+            let mut bytes = Vec::with_capacity(entry.size() as usize);
+            entry.take(MAX_DOCX_BYTES + 1).read_to_end(&mut bytes)?;
+            if bytes.len() as u64 > MAX_DOCX_BYTES {
+                bail!("DOCX 解压大小超限");
+            }
+            parse_paragraphs(&docx_paragraphs(Cursor::new(bytes))?)
+        })();
+        match parsed {
+            Ok(rows) if !rows.is_empty() => output.extend(rows),
+            Ok(_) => {
+                failed_count += 1;
+                eprintln!("No verified answers in batch DOCX: {name}");
+            }
+            Err(err) => {
+                failed_count += 1;
+                eprintln!("Skipping unreadable batch DOCX {name}: {err:#}");
+            }
+        }
+    }
+    if docx_count == 0 {
+        bail!("ZIP 内没有 DOCX 文件；请选取批量导出的 ZIP");
+    }
+    if output.is_empty() {
+        bail!("ZIP 中 {docx_count} 个 DOCX 均未提取到有效的正确答案");
+    }
+    if failed_count > 0 {
+        eprintln!("Batch ZIP import: {failed_count}/{docx_count} DOCX were skipped");
+    }
+    Ok(output)
 }
 fn push_verified(
     out: &mut Vec<Question>,
@@ -232,6 +313,120 @@ pub fn parse_paragraphs(lines: &[String]) -> Result<Vec<Question>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{Cursor, Write};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use zip::{write::SimpleFileOptions, ZipWriter};
+
+    static ZIP_TEST_NUMBER: AtomicUsize = AtomicUsize::new(0);
+
+    fn make_zip(files: &[(&str, Vec<u8>)]) -> Vec<u8> {
+        let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, bytes) in files {
+            archive
+                .start_file(*name, SimpleFileOptions::default())
+                .unwrap();
+            archive.write_all(bytes).unwrap();
+        }
+        archive.finish().unwrap().into_inner()
+    }
+
+    // Mimics the upstream JSZip createDocx() output: one <w:p><w:t> per line.
+    fn make_docx(paragraphs: &[&str]) -> Vec<u8> {
+        let mut xml = String::from("<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>");
+        for line in paragraphs {
+            let escaped = line
+                .replace('&', "&amp;")
+                .replace('<', "&lt;")
+                .replace('>', "&gt;");
+            xml.push_str(&format!("<w:p><w:r><w:t>{escaped}</w:t></w:r></w:p>"));
+        }
+        xml.push_str("</w:body></w:document>");
+        make_zip(&[("word/document.xml", xml.into_bytes())])
+    }
+
+    fn import_temp_zip(bytes: Vec<u8>) -> Result<Vec<Question>> {
+        let serial = ZIP_TEST_NUMBER.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "tikulocal-batch-{}-{serial}.zip",
+            std::process::id()
+        ));
+        std::fs::write(&path, bytes)?;
+        let result = from_path(&path);
+        let _ = std::fs::remove_file(path);
+        result
+    }
+
+    #[test]
+    fn upstream_batch_zip_imports_multiple_docx_and_ignores_manifest() {
+        let chapter_a = make_docx(&[
+            "1 【单选题】",
+            "测试题干 & 内容",
+            "选项：",
+            "A、 选项甲",
+            "B、 选项乙",
+            "我的答案：A",
+            "答案状态：正确",
+            "2 【单选题】",
+            "明确标准答案优先",
+            "我的答案：A",
+            "答案状态：错误",
+            "正确答案：B",
+        ]);
+        let chapter_b = make_docx(&[
+            "1 【填空题】",
+            "第一章节填空",
+            "我的答案：内容",
+            "答案状态：部分正确",
+            "2 【判断题】",
+            "确实如此",
+            "正确答案：对",
+            "3 【多选题】",
+            "尚未公开答案",
+            "我的答案：A,B",
+        ]);
+        let archive = make_zip(&[
+            ("001_专题六.docx", chapter_a),
+            ("课程/002_专题六.docx", chapter_b),
+            ("导出清单.txt", "成功 2，失败 0".as_bytes().to_vec()),
+        ]);
+        let got = import_temp_zip(archive).unwrap();
+        assert_eq!(
+            got.len(),
+            3,
+            "only verified/explicit answers should be imported"
+        );
+        assert_eq!(got[0].question, "测试题干 & 内容");
+        assert_eq!(got[0].options, vec!["选项甲", "选项乙"]);
+        assert_eq!(got[0].answer, "A");
+        assert_eq!(got[1].answer, "B");
+        assert_eq!(got[2].answer, "对");
+    }
+
+    #[test]
+    fn upstream_batch_zip_skips_bad_member_but_keeps_valid_docx() {
+        let doc = make_docx(&["1 【单选题】", "有效题", "正确答案：C"]);
+        let archive = make_zip(&[
+            ("001_坏文件.docx", b"not a docx".to_vec()),
+            ("002_好文件.docx", doc),
+            ("导出清单.txt", vec![]),
+        ]);
+        let got = import_temp_zip(archive).unwrap();
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].answer, "C");
+    }
+
+    #[test]
+    fn upstream_batch_zip_without_docx_or_answers_is_rejected() {
+        assert!(import_temp_zip(make_zip(&[("导出清单.txt", b"nothing".to_vec())])).is_err());
+        let doc = make_docx(&[
+            "1 【单选题】",
+            "没有公布答案",
+            "我的答案：A",
+            "答案状态：错误",
+        ]);
+        assert!(import_temp_zip(make_zip(&[("001_空.docx", doc)])).is_err());
+    }
+
     #[test]
     fn explicitly_correct_my_answer_is_accepted() {
         let input = [

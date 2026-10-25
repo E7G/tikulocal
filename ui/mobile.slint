@@ -108,7 +108,7 @@ export component MainWindow inherits Window {
             spacing: 0px;
             if root.page == 0: VerticalLayout { spacing: 12px; padding-top: 8px;
                     Text { text: "导入答案"; font-size: 21px; font-weight: 700; color: Palette.foreground; }
-                    Text { text: "从 Android 文件选择器挑选 .docx 或 .json，可一次导入多个。"; color: Palette.foreground; wrap: word-wrap; }
+                    Text { text: "支持批量导出 ZIP、DOCX 和 JSON；也可多选文件。"; color: Palette.foreground; wrap: word-wrap; }
                     HorizontalLayout { spacing: 8px; height: 52px;
                         Button { text: "选取文件"; primary: true; clicked => { root.choose-files(); } }
                         Button { text: "开始导入"; enabled: root.staged-files.length > 0 && !root.import-busy; clicked => { root.import-all(); } }

@@ -196,7 +196,7 @@ export component MainWindow inherits Window {
                     VerticalLayout {
                         height: 52px; spacing: 4px;
                         Text { text: "导入题库"; color: root.primary-text; font-size: 24px; font-weight: 700; }
-                        Text { text: "将 Word 和 JSON 答案导入本地，支持批量处理。"; color: root.secondary-text; font-size: 12px; }
+                        Text { text: "支持 Word、JSON 和批量导出的 ZIP，离线合并导入。"; color: root.secondary-text; font-size: 12px; }
                     }
                     Rectangle {
                         height: 118px; border-radius: 24px; background: root.tint;
@@ -215,7 +215,7 @@ export component MainWindow inherits Window {
                             }
                             VerticalLayout {
                                 spacing: 7px; horizontal-stretch: 1;
-                                Text { text: "导入 .docx / .json 文件"; color: root.primary-text; font-size: 16px; font-weight: 700; }
+                                Text { text: "导入 .docx / .json / .zip 文件"; color: root.primary-text; font-size: 16px; font-weight: 700; }
                                 Text { text: "标准答案与验证正确的个人答案均可收录"; color: root.secondary-text; font-size: 11px; }
                                 HorizontalLayout {
                                     spacing: 9px;

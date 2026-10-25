@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 public class TikuActivity extends NativeActivity {
     private static final int PICK = 9011, SAVE = 9012;
-    private static final long MAX_BYTES = 32L * 1024 * 1024;
+    private static final long MAX_BYTES = 128L * 1024 * 1024;
     public boolean prefersDark() {
         int mode=getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
         return mode==android.content.res.Configuration.UI_MODE_NIGHT_YES;
@@ -25,6 +25,8 @@ public class TikuActivity extends NativeActivity {
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);
             intent.putExtra(Intent.EXTRA_MIME_TYPES,new String[]{
                 "application/json",
+                "application/zip",
+                "application/x-zip-compressed",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "application/octet-stream"
             });
@@ -72,8 +74,8 @@ public class TikuActivity extends NativeActivity {
     }
     private void importOne(Uri uri)throws IOException{
         String name=displayName(uri).toLowerCase(java.util.Locale.ROOT);
-        String ext=name.endsWith(".docx")?".docx":name.endsWith(".json")?".json":null;
-        if(ext==null)throw new IOException("Only .docx and .json files are supported");
+        String ext=name.endsWith(".docx")?".docx":name.endsWith(".json")?".json":name.endsWith(".zip")?".zip":null;
+        if(ext==null)throw new IOException("Only .docx, .json and .zip files are supported");
         File imports=new File(getFilesDir(),"imports");
         if(!imports.isDirectory()&&!imports.mkdirs())throw new IOException("Cannot create imports folder");
         File target=new File(imports,UUID.randomUUID().toString()+ext);

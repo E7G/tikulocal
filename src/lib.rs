@@ -371,7 +371,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             }
             #[cfg(not(target_os = "android"))]
             if let Some(files) = rfd::FileDialog::new()
-                .add_filter("题库文件", &["docx", "json"])
+                .add_filter("题库文件", &["docx", "json", "zip"])
                 .pick_files()
             {
                 let mut queue = staged.lock().unwrap();

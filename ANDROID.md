@@ -5,8 +5,8 @@ Android builds use the **same Rust question-bank engine** as the Windows/Linux/m
 ## Features
 
 - ARM64 native Android app (Android 8.0 / API 26 or newer).
-- Search the offline SQLite question bank, manage entries, and import DOCX/JSON.
-- Android Storage Access Framework file picker: multi-select supported; selected documents are copied into the app's private directory.
+- Search the offline SQLite question bank, manage entries, and import DOCX/JSON/ZIP (Chaoxing batch Word exports).
+- Android Storage Access Framework file picker: multi-select supported; .zip is accepted (up to 128 MiB), and selected documents are copied into the app's private directory.
 - Android system Save As picker for JSON export (no broad storage permissions).
 - Same `127.0.0.1:8060/adapter-service/search` local API on the device. Only the INTERNET permission is requested.
 - Material light/dark/system theme support and a mobile single-column layout.
