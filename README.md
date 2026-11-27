@@ -164,7 +164,7 @@ cargo build --release
 
 Android ARM64 的完整步骤（Android SDK、NDK、Java 和 cargo-ndk）见 [ANDROID.md](ANDROID.md)。
 
-GitHub Actions 的 Rust release 工作流在 main 分支推送时运行测试并构建桌面端和 Android 产物；推送 v* 标签时，还会将构建产物附加到 GitHub Release。
+GitHub Actions 的 Rust release 工作流分为验证与发布两阶段：向 main 推送代码或提交 PR 时，只在 Linux 上运行 Rust 测试；仅修改 Markdown、docs、LICENSE 或 .gitignore 时会跳过 CI。推送 `v*` 标签后才会构建 Windows、Linux、macOS（ARM64 / x64）和 Android APK，并由单一发布任务统一创建或更新 GitHub Release，同时生成 SHA-256 校验文件。重复运行同一标签时会覆盖同名资产并清理过期资产，不会由多个构建任务并发修改 Release。需要手动获取全平台预览包时，可在 Actions 页面运行 `Rust release` 并勾选 `build_preview`；该模式只保存临时工作流产物，不创建 Release。
 
 ## 项目结构
 

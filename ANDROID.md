@@ -31,7 +31,7 @@ adb shell am start -n com.e7g.tikulocal/.TikuActivity
 
 For Windows use `android\gradlew.bat :app:assembleDebug`. Set `ANDROID_HOME` to the Android SDK root. The Gradle build will resolve the SDK platform and NDK paths.
 
-The GitHub Action `Rust release` builds a preview APK (`tikulocal-android-arm64.apk`) and attaches it to tagged GitHub releases.
+The GitHub Action `Rust release` builds the Android APK only for `v*` tag releases or when a manual `workflow_dispatch` run enables `build_preview`. A tagged release is published once, after all desktop and Android builds succeed. The APK is currently debug-signed for preview/testing; production signing with a stable private key is not configured.
 
 ## Design / privacy
 
