@@ -34,6 +34,69 @@ pub(crate) fn strict_text(s: &str) -> String {
     s.trim().replace("\r\n", "\n")
 }
 
+/// Canonicalize presentation differences in a title, not its meaning.
+/// The old lossy index remains only a candidate filter. Options are still strict_text.
+pub(crate) fn title_key(s: &str) -> String {
+    fn han(c: char) -> bool {
+        matches!(c, '\u{3400}'..='\u{4dbf}' | '\u{4e00}'..='\u{9fff}' |
+            '\u{f900}'..='\u{faff}' | '\u{20000}'..='\u{2fa1f}' | '\u{30000}'..='\u{323af}')
+    }
+    fn punctuation(c: char) -> char {
+        match c {
+            '，' => ',',
+            '？' => '?',
+            '！' => '!',
+            '：' => ':',
+            '；' => ';',
+            '（' => '(',
+            '）' => ')',
+            '［' => '[',
+            '］' => ']',
+            '｛' => '{',
+            '｝' => '}',
+            '．' => '.',
+            '＂' => '"',
+            '＇' => '\'',
+            _ => c,
+        }
+    }
+
+    let mut out = String::new();
+    let mut previous: Option<char> = None;
+    let mut space = false;
+    let chars: Vec<char> = s.chars().collect();
+    for (i, &raw) in chars.iter().enumerate() {
+        if raw.is_whitespace() || raw == '\u{200b}' {
+            space = true;
+            continue;
+        }
+        // A Chinese full stop in prose is equivalent to a period, but not a decimal point.
+        let c = if raw == '。'
+            && !(i
+                .checked_sub(1)
+                .and_then(|p| chars.get(p))
+                .is_some_and(|c| c.is_numeric())
+                && chars.get(i + 1).is_some_and(|c| c.is_numeric()))
+        {
+            '.'
+        } else {
+            punctuation(raw)
+        };
+        if let Some(p) = previous {
+            // Keep separators between Latin words, identifiers, numbers, and operators.
+            // Chinese layout whitespace is optional; whitespace between parentheses
+            // is also optional for an empty fill-in placeholder.
+            if space && !han(p) && !han(c) && !(p == '(' && c == ')') {
+                out.push(' ');
+            }
+        }
+        out.push(c);
+        previous = Some(c);
+        space = false;
+    }
+    out
+}
+
 /// The legacy normalized index is only a candidate filter, never proof of a match.
 /// Include old databases with missing cache values and exact raw titles.
 pub(crate) fn exact_candidates(
@@ -41,7 +104,7 @@ pub(crate) fn exact_candidates(
     query: &str,
     kind: Option<i32>,
 ) -> Result<Vec<Question>> {
-    let key = strict_text(query);
+    let key = title_key(query);
     if key.is_empty() {
         return Ok(Vec::new());
     }
@@ -54,7 +117,7 @@ pub(crate) fn exact_candidates(
     let mut result = Vec::new();
     while let Some(row) = rows.next()? {
         let question: String = row.get(0)?;
-        if strict_text(&question) != key {
+        if title_key(&question) != key {
             continue;
         }
         let raw: Option<String> = row.get(1)?;

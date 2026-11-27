@@ -246,7 +246,7 @@ pub fn response(db: &rusqlite::Connection, payload: &Value) -> Value {
         json!({"plat":0,"question":input,"options":opts,"type":kind.unwrap_or(0),
         "answer":{"answerKey":[],"answerKeyText":"","answerIndex":[],"answerText":"","bestAnswer":[],"allAnswer":[]}})
     };
-    if !valid_type || !valid_options || db::strict_text(input).is_empty() {
+    if !valid_type || !valid_options || db::title_key(input).is_empty() {
         return empty();
     }
     let Ok(candidates) = db::exact_candidates(db, input, kind) else {
@@ -373,6 +373,81 @@ mod tests {
         assert_eq!(r["answer"]["bestAnswer"], json!([]), "{r}");
         assert_eq!(r["answer"]["answerIndex"], json!([]), "{r}");
         assert_eq!(r["answer"]["answerText"], "");
+    }
+
+    #[test]
+    fn adapter_accepts_only_safe_title_formatting_differences() {
+        let db = fixture(&[
+            ("中国的首都是哪里？", &["上海", "北京"], 0, "B"),
+            ("下列说法中，（ ）正确。", &["甲", "乙"], 0, "A"),
+            ("Which fruit is yellow?", &["Apple", "Banana"], 0, "B"),
+            ("第1题：x+2=3", &["1", "2"], 0, "A"),
+            ("Value 1.2", &["one", "two"], 0, "A"),
+            ("AB CD", &[], 4, "text"),
+        ]);
+        for title in [
+            "中国的首都是哪里?",
+            " 中国的 首都是\n哪里？ ",
+            "中国的\u{00a0}首都是\u{200b}哪里？",
+        ] {
+            let r = response(
+                &db,
+                &json!({"question":title,"options":["上海","北京"],"type":0}),
+            );
+            assert_eq!(r["answer"]["bestAnswer"], json!(["北京"]), "{title}");
+        }
+        let r = response(
+            &db,
+            &json!({"question":"下列说法中,()正确.","options":["甲","乙"],"type":0}),
+        );
+        assert_eq!(r["answer"]["bestAnswer"], json!(["甲"]));
+        let r = response(
+            &db,
+            &json!({"question":"Which  fruit\r\nis yellow？","options":["Apple","Banana"],"type":0}),
+        );
+        assert_eq!(r["answer"]["bestAnswer"], json!(["Banana"]));
+        let r = response(
+            &db,
+            &json!({"question":"第 1 题:x+2=3","options":["1","2"],"type":0}),
+        );
+        assert_eq!(r["answer"]["bestAnswer"], json!(["1"]));
+        assert_no_hit(
+            &db,
+            json!({"question":"中国的首都是哪里","options":["上海","北京"],"type":0}),
+        );
+        assert_no_hit(
+            &db,
+            json!({"question":"中国的首都是哪里？","options":["上 海","北京"],"type":0}),
+        );
+        assert_no_hit(
+            &db,
+            json!({"question":"第1题：x-2=3","options":["1","2"],"type":0}),
+        );
+        assert_no_hit(
+            &db,
+            json!({"question":"第1题：X+2=3","options":["1","2"],"type":0}),
+        );
+        assert_no_hit(
+            &db,
+            json!({"question":"第1题：x+3=3","options":["1","2"],"type":0}),
+        );
+        assert_no_hit(
+            &db,
+            json!({"question":"Value 1。2","options":["one","two"],"type":0}),
+        );
+        assert_no_hit(&db, json!({"question":"ABCD","options":[],"type":4}));
+    }
+
+    #[test]
+    fn adapter_rejects_conflicts_after_title_normalization() {
+        let db = fixture(&[
+            ("哪项正确？", &["甲", "乙"], 0, "A"),
+            ("哪项 正确?", &["甲", "乙"], 0, "B"),
+        ]);
+        assert_no_hit(
+            &db,
+            json!({"question":"哪项正确？","options":["甲","乙"],"type":0}),
+        );
     }
 
     #[test]
