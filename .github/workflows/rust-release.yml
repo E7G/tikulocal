@@ -1,7 +1,7 @@
 name: Rust release
 on:
   push:
-    branches: [rust-native-rewrite-583fd341]
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 

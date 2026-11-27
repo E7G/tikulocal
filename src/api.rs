@@ -154,7 +154,14 @@ pub fn start(database: PathBuf) -> std::io::Result<()> {
     let server = Server::http("127.0.0.1:8060").map_err(std::io::Error::other)?;
     thread::spawn(move || {
         for mut request in server.incoming_requests() {
-            let path = request.url().split('?').next().unwrap_or("");
+            // Ignore query strings and optional trailing slashes so legacy OCS/TikuAdapter
+            // URLs (including ?use=local) resolve to the same endpoint.
+            let path = request
+                .url()
+                .split('?')
+                .next()
+                .unwrap_or("")
+                .trim_end_matches('/');
             let (code, data) = if request.method() == &Method::Options {
                 (204, String::new())
             } else if request.method() == &Method::Post && path == "/adapter-service/search" {
@@ -174,9 +181,11 @@ pub fn start(database: PathBuf) -> std::io::Result<()> {
                     Err(_) => (400, json!({"error":"Invalid request body"}).to_string()),
                 }
             } else if request.method() == &Method::Get
-                && (path == "/adapter-service" || path == "/adapter-service/")
+                && (path == "/adapter-service" || path == "/adapter-service/search")
             {
-                (200, json!({"status":"ok"}).to_string())
+                // Some userscript managers/proxies probe the configured URL with GET
+                // before sending the actual POST lookup request.
+                (200, json!({"status":"ok","service":"tikuAdapter"}).to_string())
             } else if request.method() == &Method::Get && path == "/" {
                 (
                     200,
