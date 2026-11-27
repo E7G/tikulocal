@@ -28,6 +28,51 @@ pub fn normalized(s: &str) -> String {
         .flat_map(char::to_lowercase)
         .collect()
 }
+/// Strict lookup must preserve case, punctuation and mathematical operators.
+/// Only outer whitespace and Windows/Unix line endings are presentation differences.
+pub(crate) fn strict_text(s: &str) -> String {
+    s.trim().replace("\r\n", "\n")
+}
+
+/// The legacy normalized index is only a candidate filter, never proof of a match.
+/// Include old databases with missing cache values and exact raw titles.
+pub(crate) fn exact_candidates(
+    db: &Connection,
+    query: &str,
+    kind: Option<i32>,
+) -> Result<Vec<Question>> {
+    let key = strict_text(query);
+    if key.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut stmt = db.prepare(
+        "SELECT question,options,type,answer FROM questions
+         WHERE (question=?1 OR search_question=?2 OR search_question IS NULL OR search_question='')
+           AND (?3 IS NULL OR type=?3)",
+    )?;
+    let mut rows = stmt.query(params![key, normalized(query), kind])?;
+    let mut result = Vec::new();
+    while let Some(row) = rows.next()? {
+        let question: String = row.get(0)?;
+        if strict_text(&question) != key {
+            continue;
+        }
+        let raw: Option<String> = row.get(1)?;
+        let options = match raw.as_deref() {
+            None | Some("") => Vec::new(),
+            Some(raw) => serde_json::from_str::<Vec<String>>(raw)
+                .context("Invalid options for an exact title match")?,
+        };
+        result.push(Question {
+            question,
+            options,
+            kind: row.get(2)?,
+            answer: row.get(3)?,
+        });
+    }
+    Ok(result)
+}
+
 pub fn open(path: &Path) -> Result<Connection> {
     let db = Connection::open(path).context("Open SQLite question database")?;
     db.execute_batch(
@@ -37,7 +82,7 @@ pub fn open(path: &Path) -> Result<Connection> {
         search_question TEXT, search_options TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
         CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
-        CREATE INDEX IF NOT EXISTS idx_questions_search ON questions(search_question);",
+        ",
     )?;
     let mut columns = Vec::new();
     {
@@ -52,6 +97,7 @@ pub fn open(path: &Path) -> Result<Connection> {
             db.execute(&format!("ALTER TABLE questions ADD COLUMN {name} TEXT"), [])?;
         }
     }
+    db.execute_batch("CREATE INDEX IF NOT EXISTS idx_questions_search ON questions(search_question); CREATE INDEX IF NOT EXISTS idx_questions_exact_title ON questions(question);")?;
     Ok(db)
 }
 pub fn add_many(db: &mut Connection, questions: &[Question]) -> Result<usize> {
@@ -166,6 +212,9 @@ pub fn search(
         } else {
             0
         };
+        if score == 0 {
+            continue;
+        }
         let matched = options
             .iter()
             .map(|o| normalized(o))
