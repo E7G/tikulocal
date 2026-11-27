@@ -90,7 +90,7 @@ http://127.0.0.1:8060
 http://127.0.0.1:8060/adapter-service/search?use=local
 ~~~
 
-接口会忽略查询参数，并兼容路径末尾多一个斜杠的情况。对接口地址进行 GET 探测时，/adapter-service 和 /adapter-service/search 都会返回服务状态，不会因为探测请求而返回 404。OPTIONS 预检请求也会得到响应。
+接口会忽略查询参数，并兼容路径末尾多一个斜杠的情况。OCS 使用 HEAD 请求检测题库连接，并可能附加 t 时间戳参数。/adapter-service 和 /adapter-service/search 均支持 HEAD / GET 探测，返回 HTTP 200；HEAD 响应不包含正文。OPTIONS 预检请求也会得到响应。
 
 ### API 请求示例
 
@@ -132,7 +132,7 @@ Content-Type: application/json
 ### 连接问题排查
 
 - **检查服务是否启动**：在浏览器打开 http://127.0.0.1:8060/，正常时会返回包含 status: ok 的 JSON。
-- **检查接口路径**：打开 http://127.0.0.1:8060/adapter-service/search，GET 探测应返回服务状态；正式查题使用 POST。
+- **检查接口路径**：打开 http://127.0.0.1:8060/adapter-service/search，HEAD / GET 探测应返回 HTTP 200；正式查题使用 POST。
 - **出现 404**：确认路径为 /adapter-service/search，解析器选择的是 TikuAdapter，并确认运行的是包含 OCS 兼容修复的版本。
 - **连接被拒绝或超时**：确认 TikuLocal 没有退出，并检查「设置与连接」页面是否提示 API 启动失败；端口 8060 被其他程序占用时服务无法监听。
 - **接口正常但没有答案**：确认题目已导入，并检查题干和选项是否与题库中的内容相符。

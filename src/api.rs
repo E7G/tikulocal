@@ -153,71 +153,124 @@ pub fn response(db: &rusqlite::Connection, payload: &Value) -> Value {
 pub fn start(database: PathBuf) -> std::io::Result<()> {
     let server = Server::http("127.0.0.1:8060").map_err(std::io::Error::other)?;
     thread::spawn(move || {
-        for mut request in server.incoming_requests() {
-            // Ignore query strings and optional trailing slashes so legacy OCS/TikuAdapter
-            // URLs (including ?use=local) resolve to the same endpoint.
-            let path = request
-                .url()
-                .split('?')
-                .next()
-                .unwrap_or("")
-                .trim_end_matches('/');
-            let (code, data) = if request.method() == &Method::Options {
-                (204, String::new())
-            } else if request.method() == &Method::Post && path == "/adapter-service/search" {
-                let mut body = String::new();
-                match request
-                    .as_reader()
-                    .take(1024 * 1024)
-                    .read_to_string(&mut body)
-                {
-                    Ok(_) => match serde_json::from_str::<Value>(&body) {
-                        Ok(input) => match db::open(&database) {
-                            Ok(conn) => (200, response(&conn, &input).to_string()),
-                            Err(e) => (500, json!({"error":e.to_string()}).to_string()),
-                        },
-                        Err(_) => (400, json!({"error":"Invalid JSON data"}).to_string()),
-                    },
-                    Err(_) => (400, json!({"error":"Invalid request body"}).to_string()),
-                }
-            } else if request.method() == &Method::Get
-                && (path == "/adapter-service" || path == "/adapter-service/search")
-            {
-                // Some userscript managers/proxies probe the configured URL with GET
-                // before sending the actual POST lookup request.
-                (200, json!({"status":"ok","service":"tikuAdapter"}).to_string())
-            } else if request.method() == &Method::Get && path == "/" {
-                (
-                    200,
-                    json!({"status":"ok","service":"tikulocal","search":"/adapter-service/search"})
-                        .to_string(),
-                )
-            } else {
-                (404, json!({"error":"Not found"}).to_string())
-            };
-            let mut reply = Response::from_string(data).with_status_code(StatusCode(code));
-            if let Ok(h) = Header::from_bytes("Content-Type", "application/json; charset=utf-8") {
-                reply.add_header(h);
-            }
-            if let Ok(h) = Header::from_bytes("Access-Control-Allow-Origin", "*") {
-                reply.add_header(h);
-            }
-            if let Ok(h) = Header::from_bytes("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            {
-                reply.add_header(h);
-            }
-            if let Ok(h) = Header::from_bytes("Access-Control-Allow-Headers", "Content-Type") {
-                reply.add_header(h);
-            }
-            let _ = request.respond(reply);
+        for request in server.incoming_requests() {
+            handle_request(request, &database);
         }
     });
     Ok(())
 }
 
+fn handle_request(mut request: tiny_http::Request, database: &std::path::Path) {
+    // Ignore query strings and optional trailing slashes so legacy OCS/TikuAdapter
+    // URLs (including ?use=local) resolve to the same endpoint.
+    let path = request
+        .url()
+        .split('?')
+        .next()
+        .unwrap_or("")
+        .trim_end_matches('/');
+    let (code, data) = if request.method() == &Method::Options {
+        (204, String::new())
+    } else if request.method() == &Method::Post && path == "/adapter-service/search" {
+        let mut body = String::new();
+        match request
+            .as_reader()
+            .take(1024 * 1024)
+            .read_to_string(&mut body)
+        {
+            Ok(_) => match serde_json::from_str::<Value>(&body) {
+                Ok(input) => match db::open(database) {
+                    Ok(conn) => (200, response(&conn, &input).to_string()),
+                    Err(e) => (500, json!({"error":e.to_string()}).to_string()),
+                },
+                Err(_) => (400, json!({"error":"Invalid JSON data"}).to_string()),
+            },
+            Err(_) => (400, json!({"error":"Invalid request body"}).to_string()),
+        }
+    } else if matches!(request.method(), Method::Get | Method::Head)
+        && (path == "/adapter-service" || path == "/adapter-service/search")
+    {
+        // OCS probes the configured URL with HEAD (or GET)
+        // before sending the actual POST lookup request.
+        (
+            200,
+            json!({"status":"ok","service":"tikuAdapter"}).to_string(),
+        )
+    } else if matches!(request.method(), Method::Get | Method::Head) && path.is_empty() {
+        (
+            200,
+            json!({"status":"ok","service":"tikulocal","search":"/adapter-service/search"})
+                .to_string(),
+        )
+    } else {
+        (404, json!({"error":"Not found"}).to_string())
+    };
+    let mut reply = Response::from_string(data).with_status_code(StatusCode(code));
+    if let Ok(h) = Header::from_bytes("Content-Type", "application/json; charset=utf-8") {
+        reply.add_header(h);
+    }
+    if let Ok(h) = Header::from_bytes("Access-Control-Allow-Origin", "*") {
+        reply.add_header(h);
+    }
+    if let Ok(h) = Header::from_bytes("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS") {
+        reply.add_header(h);
+    }
+    if let Ok(h) = Header::from_bytes("Access-Control-Allow-Headers", "Content-Type") {
+        reply.add_header(h);
+    }
+    let _ = request.respond(reply);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ocs_head_probe_and_root_health_return_success() {
+        use std::io::{Read, Write};
+        use std::net::TcpStream;
+        use std::time::Duration;
+
+        let server = Server::http("127.0.0.1:0").unwrap();
+        let addr = server.server_addr().to_ip().unwrap();
+        let cases = [
+            ("HEAD", "/adapter-service/search?use=local&t=123456", 200),
+            ("HEAD", "/adapter-service/search/?use=local", 200),
+            ("GET", "/", 200),
+            ("HEAD", "/", 200),
+            ("HEAD", "/unknown", 404),
+        ];
+        let worker = thread::spawn(move || {
+            for _ in 0..cases.len() {
+                let request = server
+                    .recv_timeout(Duration::from_secs(5))
+                    .unwrap()
+                    .unwrap();
+                handle_request(request, std::path::Path::new("unused.db"));
+            }
+        });
+        for (method, path, expected) in cases {
+            let mut stream = TcpStream::connect(addr).unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(5)))
+                .unwrap();
+            write!(
+                stream,
+                "{method} {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+            )
+            .unwrap();
+            let mut reply = String::new();
+            stream.read_to_string(&mut reply).unwrap();
+            assert!(
+                reply.starts_with(&format!("HTTP/1.1 {expected} ")),
+                "{reply}"
+            );
+            if method == "HEAD" {
+                assert_eq!(reply.split_once("\r\n\r\n").unwrap().1, "");
+            }
+        }
+        worker.join().unwrap();
+    }
+
     #[test]
     fn choice_answers_never_guess_from_english_option_text() {
         let opts = vec![
